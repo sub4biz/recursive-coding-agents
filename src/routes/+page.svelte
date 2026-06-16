@@ -1,0 +1,262 @@
+<script lang="ts">
+	import Deck from '$lib/Deck.svelte';
+	import Slide from '$lib/Slide.svelte';
+	import { slideOrder } from '../slides/order';
+
+	type Variant = 'default' | 'title' | 'section' | 'split' | 'quote' | 'code' | 'grid' | 'image';
+	interface Meta {
+		label?: string;
+		variant?: Variant;
+		alt?: boolean;
+		align?: 'left' | 'center';
+		background?: string;
+		eyebrow?: string;
+		cta_text?: string;
+		cta_href?: string;
+	}
+	interface MdModule {
+		metadata: Meta;
+		default: import('svelte').Component;
+	}
+
+	// Each slide is a markdown file in src/slides/*.md (compiled by mdsvex).
+	// Reorder the talk by moving semantic slide names in src/slides/order.ts.
+	const modules = import.meta.glob('/src/slides/*.md', { eager: true }) as Record<
+		string,
+		MdModule
+	>;
+	const slides = slideOrder.map((slug) => {
+		const path = `/src/slides/${slug}.md`;
+		const mod = modules[path];
+		if (!mod) throw new Error(`Missing slide: ${path}`);
+		return { meta: mod.metadata ?? {}, Content: mod.default };
+	});
+
+	const title = 'Recursive Coding Agents — Raymond Weitekamp';
+</script>
+
+<svelte:head>
+	<title>{title}</title>
+	<meta name="description" content="Recursive Coding Agents — a talk by Raymond Weitekamp (OpenProse)." />
+</svelte:head>
+
+<Deck label="Recursive Coding Agents">
+	{#each slides as { meta, Content }, i (i)}
+		<Slide
+			label={meta.label}
+			variant={meta.variant ?? 'default'}
+			alt={meta.alt ?? false}
+			align={meta.align}
+			background={meta.background}
+		>
+			{#if meta.eyebrow}<p class="eyebrow">{meta.eyebrow}</p>{/if}
+			<div class="prose"><Content /></div>
+			{#if meta.cta_text && meta.cta_href}
+				<a class="cta" href={meta.cta_href} target="_blank" rel="noopener noreferrer"
+					>{meta.cta_text}</a
+				>
+			{/if}
+		</Slide>
+	{/each}
+</Deck>
+
+<style>
+	/* Markdown (mdsvex) content inside each slide, mapped to the deck type scale.
+	   Global because each compiled .md is its own child component; scoped under
+	   .prose so the frontmatter eyebrow + cta keep their own classes. */
+	:global(.slide .content .prose > :first-child) {
+		margin-top: 0;
+	}
+	:global(.slide .content .prose h1) {
+		margin: 0 0 clamp(1.1rem, 2.8vw, 1.8rem);
+		font-size: var(--fs-title);
+		font-weight: 700;
+		line-height: 1.05;
+		color: var(--deck-text);
+	}
+	:global(.slide .content .prose h2) {
+		margin: 0 0 clamp(1.2rem, 3.5vw, 2.2rem);
+		font-size: var(--fs-heading);
+		font-weight: 700;
+		line-height: 1.1;
+		color: var(--deck-text);
+	}
+	:global(.slide .content .prose p) {
+		margin: clamp(1rem, 2.6vw, 1.6rem) 0 0;
+		font-size: var(--fs-body);
+		color: var(--deck-muted);
+	}
+	:global(.slide .content .prose hr) {
+		width: min(100%, 860px);
+		height: clamp(3px, 0.35vw, 6px);
+		margin: clamp(1.7rem, 4vw, 2.9rem) 0 clamp(1.8rem, 4.4vw, 3.2rem);
+		border: 0;
+		border-radius: 999px;
+		background: color-mix(in oklch, var(--deck-text) 34%, var(--deck-bg));
+	}
+	:global(.slide .content .prose .url-previews) {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: clamp(0.85rem, 2vw, 1.25rem);
+		margin-top: clamp(1rem, 2.4vw, 1.6rem);
+	}
+	:global(.slide .content .prose .url-preview) {
+		display: block;
+		overflow: hidden;
+		padding: clamp(0.7rem, 1.5vw, 1rem);
+		border: 1px solid color-mix(in oklch, var(--deck-text) 16%, transparent);
+		border-radius: 8px;
+		background: color-mix(in oklch, var(--deck-text) 4%, var(--deck-bg));
+		text-decoration: none;
+		box-shadow: 0 18px 50px -34px color-mix(in oklch, var(--deck-text) 48%, transparent);
+		transition:
+			border-color 0.16s ease,
+			background 0.16s ease,
+			transform 0.16s ease;
+	}
+	:global(.slide .content .prose .url-preview img) {
+		display: block;
+		width: 100%;
+		height: clamp(135px, 18dvh, 210px);
+		object-fit: cover;
+		object-position: top center;
+		border-radius: 5px;
+		border: 1px solid color-mix(in oklch, var(--deck-text) 12%, transparent);
+		background: white;
+	}
+	:global(.slide .content .prose .url-preview .preview-caption) {
+		display: grid;
+		gap: 0.35rem;
+		margin-top: clamp(0.55rem, 1.2vw, 0.85rem);
+	}
+	:global(.slide .content .prose .url-preview:hover) {
+		border-color: color-mix(in oklch, var(--deck-accent) 48%, var(--deck-text));
+		background: color-mix(in oklch, var(--deck-text) 7%, var(--deck-bg));
+		transform: translateY(-2px);
+	}
+	:global(.slide .content .prose .url-preview:focus-visible) {
+		outline: 2px solid var(--deck-accent);
+		outline-offset: 3px;
+	}
+	:global(.slide .content .prose .url-preview .preview-source) {
+		font-size: clamp(0.72rem, 0.66rem + 0.22vw, 0.86rem);
+		font-weight: 700;
+		letter-spacing: 0.13em;
+		text-transform: uppercase;
+		color: var(--deck-accent);
+	}
+	:global(.slide .content .prose .url-preview strong) {
+		font-size: clamp(0.95rem, 0.82rem + 0.48vw, 1.2rem);
+		line-height: 1.14;
+		color: var(--deck-text);
+	}
+	:global(.slide .content .prose .nowrap) {
+		white-space: nowrap;
+	}
+	:global(.slide .content .prose .paper-split) {
+		display: grid;
+		grid-template-columns: minmax(0, 0.92fr) minmax(320px, 0.78fr);
+		gap: clamp(1.5rem, 4vw, 3rem);
+		align-items: center;
+	}
+	:global(.slide .content .prose .evidence-split) {
+		display: grid;
+		grid-template-columns: minmax(0, 0.95fr) minmax(310px, 0.72fr);
+		gap: clamp(1.4rem, 3.4vw, 2.6rem);
+		align-items: center;
+	}
+	:global(.slide .content .prose .evidence-card) {
+		display: block;
+		text-decoration: none;
+	}
+	:global(.slide .content .prose .evidence-card img) {
+		display: block;
+		width: 100%;
+		max-height: min(62dvh, 560px);
+		object-fit: contain;
+		border-radius: 8px;
+		border: 1px solid color-mix(in oklch, var(--deck-text) 18%, transparent);
+		box-shadow: 0 28px 70px -38px color-mix(in oklch, var(--deck-text) 55%, transparent);
+	}
+	:global(.slide .content .prose .paper-preview) {
+		display: block;
+		overflow: hidden;
+		border-radius: 8px;
+		border: 1px solid color-mix(in oklch, var(--deck-text) 18%, transparent);
+		background: color-mix(in oklch, var(--deck-text) 4%, var(--deck-bg));
+		text-decoration: none;
+		box-shadow: 0 28px 70px -38px color-mix(in oklch, var(--deck-text) 55%, transparent);
+	}
+	:global(.slide .content .prose .paper-preview img) {
+		display: block;
+		width: 100%;
+		max-height: min(58dvh, 520px);
+		object-fit: cover;
+		object-position: top center;
+		background: white;
+	}
+	:global(.slide .content .prose .paper-preview span) {
+		display: block;
+		padding: 0.72rem 0.9rem;
+		font-size: clamp(0.78rem, 0.72rem + 0.22vw, 0.92rem);
+		font-weight: 750;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--deck-accent);
+	}
+	:global(.slide .content .prose ul) {
+		margin: clamp(1.3rem, 3.5vw, 2.2rem) 0 0;
+		padding: 0;
+		list-style: none;
+		display: grid;
+		gap: clamp(1rem, 2.6vw, 1.5rem);
+	}
+	:global(.slide .content .prose li) {
+		font-size: var(--fs-body);
+		color: var(--deck-muted);
+		line-height: 1.4;
+	}
+	:global(.slide .content .prose li strong) {
+		color: var(--deck-accent);
+		font-weight: 700;
+	}
+	:global(.slide .content .prose blockquote) {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		font-size: var(--fs-quote);
+		font-weight: 600;
+		line-height: 1.18;
+		color: var(--deck-text);
+	}
+	:global(.slide .content .prose strong) {
+		color: var(--deck-text);
+		font-weight: 700;
+	}
+	:global(.slide .content .prose em) {
+		font-style: normal;
+		color: var(--deck-accent);
+	}
+	:global(.slide .content .prose a) {
+		color: var(--deck-text);
+		text-decoration: underline;
+		text-decoration-color: color-mix(in srgb, var(--deck-accent) 45%, transparent);
+		text-decoration-thickness: 1.5px;
+		text-underline-offset: 3px;
+		transition: color 0.15s ease;
+	}
+	:global(.slide .content .prose a:hover) {
+		color: var(--deck-accent);
+		text-decoration-color: var(--deck-accent);
+	}
+	@media (max-width: 760px) {
+		:global(.slide .content .prose .url-previews),
+		:global(.slide .content .prose .evidence-split),
+		:global(.slide .content .prose .paper-split) {
+			grid-template-columns: 1fr;
+		}
+		:global(.slide .content .prose .evidence-card img) {
+			max-height: 38dvh;
+		}
+	}
+</style>

@@ -1,0 +1,189 @@
+/* ============================================================================
+   DECK THEME TOKENS — edit these for deck-specific layout and typography.
+   Color/font tokens intentionally map to shadcn variables, so imported shadcn
+   registry themes also rebrand the slides.
+   ========================================================================== */
+:root {
+	/* Colors */
+	--deck-bg: var(--background); /* base slide background */
+	--deck-bg-alt: var(--card); /* alternate background (Slide `alt` prop) */
+	--deck-text: var(--foreground); /* primary text */
+	--deck-muted: color-mix(
+		in oklch,
+		var(--deck-text) 70%,
+		var(--deck-bg)
+	); /* secondary / supporting text */
+	--deck-accent: var(--primary); /* eyebrows, leads, CTA, active dot */
+	--deck-accent-ink: var(--primary-foreground); /* readable text on top of --deck-accent */
+
+	/* Typography */
+	--deck-font: var(--font-sans);
+
+	/* Fluid type scale (min, preferred, max) */
+	--fs-title: clamp(2.2rem, 7vw, 5rem);
+	--fs-heading: clamp(1.6rem, 4vw, 3rem);
+	--fs-body: clamp(1.12rem, 0.96rem + 0.7vw, 1.58rem);
+	--fs-eyebrow: clamp(0.78rem, 0.72rem + 0.26vw, 1rem);
+	--fs-quote: clamp(1.6rem, 4.5vw, 3.2rem);
+
+	/* Layout */
+	--pad: clamp(1.5rem, 6vw, 6rem); /* slide padding */
+	--maxw: min(1080px, calc(100vw - (var(--pad) * 2))); /* content max width */
+}
+
+/* ============================================================================
+   BASE
+   ========================================================================== */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	background: var(--deck-bg);
+	color: var(--deck-text);
+	font-family: var(--deck-font);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+	line-height: 1.5;
+}
+
+a:not([data-slot='button']) {
+	color: inherit;
+}
+
+/* ============================================================================
+   CONTENT UTILITIES — use these inside any <Slide>. Global so every slide can
+   share one set of styles. Add your own freely.
+   ========================================================================== */
+.eyebrow {
+	margin: 0 0 clamp(0.9rem, 2vw, 1.4rem);
+	font-size: var(--fs-eyebrow);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.22em;
+	color: var(--deck-accent);
+}
+
+.title {
+	margin: 0;
+	font-size: var(--fs-title);
+	font-weight: 700;
+	line-height: 1.05;
+	letter-spacing: 0;
+	color: var(--deck-text);
+}
+
+.heading {
+	margin: 0 0 clamp(1.6rem, 4vw, 2.6rem);
+	font-size: var(--fs-heading);
+	font-weight: 700;
+	letter-spacing: 0;
+	color: var(--deck-text);
+}
+
+.sub {
+	margin: clamp(1.1rem, 2.6vw, 1.6rem) 0 0;
+	font-size: var(--fs-body);
+	color: var(--deck-muted);
+}
+
+.hint {
+	margin: clamp(2.4rem, 6vw, 3.4rem) 0 0;
+	font-size: var(--fs-eyebrow);
+	letter-spacing: 0.08em;
+	color: var(--deck-muted);
+	opacity: 0.6;
+}
+
+/* A simple vertical list of "lead + supporting line" items. */
+.points {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	gap: clamp(1.4rem, 3.5vw, 2.4rem);
+}
+
+.points li {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.lead {
+	font-size: var(--fs-body);
+	font-weight: 700;
+	color: var(--deck-accent);
+}
+
+.support {
+	font-size: var(--fs-body);
+	color: var(--deck-muted);
+}
+
+/* Big pull-quote (pairs with <Slide variant="quote">). */
+.quote {
+	margin: 0;
+	font-size: var(--fs-quote);
+	font-weight: 600;
+	line-height: 1.18;
+	letter-spacing: 0;
+	color: var(--deck-text);
+}
+
+.cite {
+	margin: clamp(1.2rem, 3vw, 1.8rem) 0 0;
+	font-size: var(--fs-body);
+	color: var(--deck-muted);
+}
+
+/* Pill call to action (zero-JS alternative to a shadcn <Button>). */
+a.cta {
+	display: inline-block;
+	margin-top: clamp(1.6rem, 4vw, 2.4rem);
+	padding: clamp(0.7rem, 1.6vw, 0.95rem) clamp(1.4rem, 3vw, 2rem);
+	border-radius: 999px;
+	background: var(--deck-accent);
+	color: var(--deck-accent-ink);
+	font-size: var(--fs-body);
+	font-weight: 700;
+	text-decoration: none;
+	letter-spacing: 0;
+	box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--deck-accent) 50%, transparent);
+	transition:
+		transform 0.18s ease,
+		box-shadow 0.18s ease,
+	filter 0.18s ease;
+}
+
+a.cta:hover {
+	transform: translateY(-2px);
+	filter: brightness(1.05);
+	box-shadow: 0 16px 40px -14px color-mix(in srgb, var(--deck-accent) 65%, transparent);
+}
+
+a.cta:focus-visible {
+	outline: 2px solid var(--deck-accent);
+	outline-offset: 3px;
+}
+
+.footer {
+	margin: clamp(1.4rem, 3.5vw, 2rem) 0 0;
+	font-size: var(--fs-eyebrow);
+	color: var(--deck-muted);
+	opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	a.cta {
+		transition: none;
+	}
+}
