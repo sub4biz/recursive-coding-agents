@@ -12,6 +12,7 @@ export const slideOrder = [
 	'workflows',
 	'openprose',
 	'openprose-rlm-examples',
+	'applied-examples',
 	'takeaways',
 	'closing'
 ] as const;
