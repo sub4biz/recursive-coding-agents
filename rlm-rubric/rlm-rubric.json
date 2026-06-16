@@ -1,0 +1,240 @@
+{
+  "title": "Recursive Language Model Rubric",
+  "generated_from": "agent synthesis over local RLM corpus",
+  "definition": "A Recursive Language Model is an inference-time scaffold around a base LM that preserves the outer model-call interface while moving the user prompt or context into a persistent executable environment as symbolic state. The root LM is shown only metadata and handles for that state, then writes programs that inspect, transform, partition, and store intermediate results. From inside the same environment, those programs can invoke sub-LM or sub-RLM calls on programmatically constructed prompt slices or subproblems, including inside loops, and finally return either a direct answer or an environment variable as the model-call result.",
+  "judging_methodology": "docs/rlm-judging-methodology.md",
+  "methodological_guardrails": [
+    "Classify behavior, not branding.",
+    "Classify the specific run shape, not only the product.",
+    "A system calling itself an RLM is not enough; a system avoiding the term RLM is not disqualifying.",
+    "The prompt/context can be a plain text prompt, tagged file, directory, repository, database, search index, session trajectory, or structured API context field.",
+    "If a user tags a file and the agent uses rg, jq, awk, Python, SQL, or another deterministic tool against that handle, it is symbolically manipulating prompt/context state.",
+    "Symbolic manipulation of prompt/context state is not enough for full RLM classification unless generated code also makes sub-LM or sub-RLM calls over constructed slices or subproblems.",
+    "Prefer observed traces, generated scripts, logs, prompts, runtime globals, source paths, and task records over surface names or documentation claims."
+  ],
+  "prompt_shape_matrix": [
+    {
+      "shape": "plain_text_only",
+      "symbolic_context": "User text or conversation text, if bound into runtime state by handle."
+    },
+    {
+      "shape": "tagged_file",
+      "symbolic_context": "File path or file object referenced from the prompt, such as @file."
+    },
+    {
+      "shape": "repository_or_directory",
+      "symbolic_context": "Repo path, directory path, file list, search index, or code database handle."
+    },
+    {
+      "shape": "structured_api_context",
+      "symbolic_context": "Named context fields, object fields, database rows, IDs, handles, or blobs."
+    },
+    {
+      "shape": "session_trajectory",
+      "symbolic_context": "Transcript path, message object, conversation handle, or event log."
+    },
+    {
+      "shape": "search_backed_corpus",
+      "symbolic_context": "BM25/vector index handle, corpus IDs, document IDs, or queryable store."
+    }
+  ],
+  "hard_gates": [
+    {
+      "id": "G1",
+      "name": "Model-call outer shape",
+      "pass_condition": "The system can be used like a model call: input prompt/context in, final answer out."
+    },
+    {
+      "id": "G2",
+      "name": "Prompt externalization",
+      "pass_condition": "The full prompt/context is bound as symbolic state in an environment, not simply pasted into the root model context."
+    },
+    {
+      "id": "G3",
+      "name": "Symbolic handle",
+      "pass_condition": "The root model can refer to and manipulate the prompt/context through handles such as context, tagged files, paths, lists, objects, database rows, search indexes, session logs, or corpus entries."
+    },
+    {
+      "id": "G4",
+      "name": "Persistent executable environment",
+      "pass_condition": "There is a REPL, runtime, notebook, shell workspace, or equivalent where intermediate state survives across steps."
+    },
+    {
+      "id": "G5",
+      "name": "Programmatic subcalls",
+      "pass_condition": "Code inside that environment can call sub-LMs or sub-RLMs on constructed slices or subproblems."
+    },
+    {
+      "id": "G6",
+      "name": "Model-chosen decomposition",
+      "pass_condition": "The model decides how to inspect, split, delegate, aggregate, verify, and stop."
+    },
+    {
+      "id": "G7",
+      "name": "Symbolic intermediate state",
+      "pass_condition": "Large intermediate artifacts stay in variables, files, or environment state, not all verbalized back into the root context."
+    }
+  ],
+  "classifications": [
+    {
+      "name": "Not RLM",
+      "meaning": "Misses one or more hard gates, usually prompt externalization or programmatic subcalls."
+    },
+    {
+      "name": "RLM-adjacent",
+      "meaning": "Shares a nearby mechanism such as tools, agents, retrieval, recursion, code execution, memory, or decomposition."
+    },
+    {
+      "name": "RLM-family ablation",
+      "meaning": "Has prompt externalization and an executable environment, but lacks recursive subcalls. This matches the paper's RLM(depth=0) ablation."
+    },
+    {
+      "name": "Full RLM",
+      "meaning": "Passes G1-G7."
+    },
+    {
+      "name": "Production-quality RLM",
+      "meaning": "Full RLM plus max depth, max calls, token/cost budgets, timeouts, sandboxing, tracing, and disciplined final-answer extraction."
+    }
+  ],
+  "litmus_tests": [
+    "Can the root model write a program over a symbolic handle to the prompt/context?",
+    "Can that program call LMs or RLMs on constructed slices or subproblems?",
+    "Can those calls occur inside generated loops, maps, filters, graph traversals, or other model-written control flow?",
+    "Does intermediate state live in the environment rather than being fully re-verbalized into the root model context?",
+    "Is the final answer produced through the same outer model-call interface?"
+  ],
+  "subagent_judge_contract": {
+    "required_scope_fields": [
+      "product_or_repo",
+      "version_or_commit",
+      "mode_or_configuration",
+      "prompt_shape",
+      "tools_enabled",
+      "observed_run_ids_logs_scripts_or_source_files"
+    ],
+    "required_report_fields": [
+      "evidence_packet",
+      "per_gate_assessment",
+      "strongest_case_for_rlm",
+      "strongest_case_against_rlm",
+      "tests_run",
+      "tests_not_run",
+      "classification",
+      "classification_scope",
+      "what_would_change_this_verdict"
+    ],
+    "verdict_values": [
+      "pass",
+      "fail",
+      "partial",
+      "conditional",
+      "unknown"
+    ],
+    "rules": [
+      "Use unknown when a gate was not tested.",
+      "Use conditional when a product passes only for some configurations or prompt shapes.",
+      "Every pass must cite observed evidence or source paths.",
+      "Every fail must include the strongest plausible contrary interpretation.",
+      "A product-level verdict must summarize all tested run shapes."
+    ]
+  },
+  "minimum_probe_suite": [
+    {
+      "id": "A",
+      "name": "Plain Prompt Runtime Handle",
+      "purpose": "Distinguish workflow recursion from prompt-as-state by default."
+    },
+    {
+      "id": "B",
+      "name": "Tagged Resource Sentinel",
+      "purpose": "Test whether a file/path/object handle acts as symbolic prompt/context state."
+    },
+    {
+      "id": "C",
+      "name": "Constructed Slice Subcall",
+      "purpose": "Test whether generated code constructs slices and calls sub-LMs or subagents over them."
+    },
+    {
+      "id": "D",
+      "name": "Negative Control",
+      "purpose": "Show a nearby prompt shape or configuration that fails or downgrades."
+    }
+  ],
+  "anti_skill_issue_design": [
+    "Use calibration fixtures before real targets.",
+    "Require evidence packets before verdict prose.",
+    "Use label-blind review when practical.",
+    "Assign one judge to make the strongest RLM case and another to make the strongest non-RLM case.",
+    "Use a deterministic adjudicator over structured gate reports.",
+    "Classify prompt shapes separately.",
+    "Require negative controls for positive product claims.",
+    "Diff generated scripts and subcall inputs against sentinel values to detect hardcoding or context leakage.",
+    "Store command lines, run IDs, versions, costs, and artifact paths.",
+    "Escalate disagreement, missing probes, or uncited gate passes to a fresh run or stronger reviewer."
+  ],
+  "close_but_not_rlm": [
+    {
+      "system": "Direct long-context model call",
+      "why_close": "It answers over a big context.",
+      "why_not_rlm": "The prompt is still just tokens inside the root model context."
+    },
+    {
+      "system": "Summarization or compaction loop",
+      "why_close": "It manages context length and may iterate.",
+      "why_not_rlm": "It usually compresses context with fixed lossy procedure rather than letting the model programmatically operate over symbolic context."
+    },
+    {
+      "system": "RAG, BM25, or semantic search",
+      "why_close": "It retrieves slices of external data.",
+      "why_not_rlm": "Retrieval can be a tool inside an RLM, but retrieval alone is not recursive programmatic decomposition over prompt-as-environment state."
+    },
+    {
+      "system": "Subagents",
+      "why_close": "They delegate work to other model instances.",
+      "why_not_rlm": "A parent verbally asking subagents is not the same as code inside an environment calling submodels over constructed context slices."
+    },
+    {
+      "system": "Repeated self-call loop",
+      "why_close": "It recursively calls the model again and again.",
+      "why_not_rlm": "Repetition lacks external symbolic state and executable control."
+    },
+    {
+      "system": "Coding agent with bash",
+      "why_close": "It has an executable environment.",
+      "why_not_rlm": "Bash alone is not enough; the prompt/context must be externalized and bash/code must be able to programmatically call sub-LMs/sub-RLMs."
+    },
+    {
+      "system": "CodeAct",
+      "why_close": "It executes code and may use tools.",
+      "why_not_rlm": "CodeAct typically loads context directly into the model rather than offloading prompt state into the code environment."
+    },
+    {
+      "system": "Hardcoded map-reduce pipeline",
+      "why_close": "It splits, delegates, and aggregates.",
+      "why_not_rlm": "The decomposition is developer-authored workflow logic rather than model-chosen recursive interaction with context."
+    },
+    {
+      "system": "Tree-of-Thought or self-consistency",
+      "why_close": "It spends inference-time compute exploring alternatives.",
+      "why_not_rlm": "It searches over reasoning traces, not symbolic prompt state in an executable environment."
+    },
+    {
+      "system": "Memory system",
+      "why_close": "It stores and retrieves information over time.",
+      "why_not_rlm": "Memory can be implemented with RLM mechanics, but memory alone is not RLM."
+    }
+  ],
+  "borderline_cases": [
+    {
+      "name": "RLM(depth=0)",
+      "classification": "RLM-family ablation",
+      "reason": "It externalizes the prompt into a REPL and lets the model inspect or manipulate it, but has no recursive subcalls."
+    },
+    {
+      "name": "Coding agent with rlm_query",
+      "classification": "Potential full RLM",
+      "reason": "It becomes RLM-like if context is stored as symbolic state, code can call sub-LMs/sub-RLMs over constructed slices, intermediate state persists, and final answer assembly happens through the model-call interface."
+    }
+  ]
+}

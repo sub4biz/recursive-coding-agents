@@ -1,0 +1,24 @@
+We are testing whether Claude Code Dynamic Workflows can instantiate a FULL Recursive Language Model run.
+
+Use `/workflows` and create/run a dynamic workflow for this task.
+
+Important: the corpus is a file handle, not prompt text:
+
+@/home/raw/github-rawwerks/aiewf-2026-rlm-recursive-coding-agent-talk/experiments/claude-workflows-full-rlm/corpus.md
+
+Write and run a workflow that satisfies these trace requirements:
+
+1. The workflow must treat the corpus file path as symbolic prompt/context state.
+2. The workflow must not solve the task by asking one subagent to read the entire corpus and answer directly.
+3. The workflow must create constructed slice handles for each `@@SLICE` block, preferably as separate files under `experiments/claude-workflows-full-rlm/generated-slices/`.
+4. The workflow must call one subagent per constructed slice handle. Each slice subagent should read only its slice handle and return structured JSON with `id`, `active`, `rank`, `word`, and `weight`.
+5. The workflow must call a separate subagent or deterministic tool for the `@@VALIDATOR` block, returning the validator token.
+6. The workflow JS must aggregate the structured slice results in workflow state: filter active records, sort by rank, join words with hyphens, and sum weights.
+7. The final answer must include:
+   - the phrase
+   - the weight_sum
+   - the validator
+   - a short trace summary listing the generated slice handles and subagent labels
+8. Do not hardcode the answer. Do not paste the full corpus into the generated workflow script or into a single subagent prompt.
+
+This is a conformance probe, so make the evidence easy to inspect: label phases clearly, use structured subagent outputs, and log key artifacts.

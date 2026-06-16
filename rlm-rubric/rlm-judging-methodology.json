@@ -1,0 +1,165 @@
+{
+  "artifact_type": "rlm_judging_methodology",
+  "date": "2026-06-15",
+  "purpose": "Make RLM classification robust to weak individual subagent judgment by requiring evidence packets, prompt-shape scoping, probes, adversarial review, and deterministic gate adjudication.",
+  "core_principle": "Subagents are evidence collectors and adversarial analysts, not authorities. The final verdict should come from reproducible evidence plus a deterministic gate adjudication.",
+  "evidence_hierarchy": [
+    "Observed black-box traces from real runs.",
+    "Generated scripts, runtime records, subagent transcripts, and tool logs.",
+    "Source code paths that implement runtime, prompt assembly, context handling, or subcall primitives.",
+    "Official docs and release notes.",
+    "Maintainer claims, names, tweets, README slogans, and product positioning."
+  ],
+  "required_scope_fields": [
+    "product_or_repo",
+    "version_or_commit",
+    "mode_or_configuration_tested",
+    "prompt_shape_tested",
+    "tools_enabled",
+    "observed_run_ids_logs_scripts_or_source_files"
+  ],
+  "prompt_shape_matrix": [
+    {
+      "shape": "plain_text_only",
+      "symbolic_context": "User text or conversation text, if bound into runtime state by handle."
+    },
+    {
+      "shape": "tagged_file",
+      "symbolic_context": "File path or file object referenced from the prompt, such as @file."
+    },
+    {
+      "shape": "repository_or_directory",
+      "symbolic_context": "Repo path, directory path, file list, search index, or code database handle."
+    },
+    {
+      "shape": "structured_api_context",
+      "symbolic_context": "Named context fields, object fields, database rows, IDs, handles, or blobs."
+    },
+    {
+      "shape": "session_trajectory",
+      "symbolic_context": "Transcript path, message object, conversation handle, or event log."
+    },
+    {
+      "shape": "search_backed_corpus",
+      "symbolic_context": "BM25/vector index handle, corpus IDs, document IDs, or queryable store."
+    }
+  ],
+  "minimum_probe_suite": [
+    {
+      "id": "A",
+      "name": "Plain Prompt Runtime Handle",
+      "records": [
+        "runtime_globals_or_visible_variables",
+        "whether_prompt_messages_conversation_context_args_or_equivalent_handles_exist",
+        "whether_raw_prompt_context_is_pasted_or_kept_behind_handle",
+        "generated_code_and_run_metadata"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Tagged Resource Sentinel",
+      "records": [
+        "sentinel_resource_path_or_object_id",
+        "generated_script",
+        "subagent_prompt_or_subcall_input",
+        "deterministic_tool_command",
+        "raw_tool_result",
+        "whether_sentinel_text_was_hardcoded_into_generated_script_or_root_prompt"
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Constructed Slice Subcall",
+      "records": [
+        "slicing_logic",
+        "subcall_primitive_used",
+        "subcall_inputs",
+        "aggregation_logic",
+        "whether_intermediate_state_stayed_outside_root_model_context"
+      ]
+    },
+    {
+      "id": "D",
+      "name": "Negative Control",
+      "records": [
+        "nearby_prompt_shape_or_configuration_expected_to_fail_or_downgrade",
+        "observed_failure_or_downgrade",
+        "classification_difference_from_positive_probe"
+      ]
+    }
+  ],
+  "judge_output_contract": {
+    "scope": {
+      "target": "",
+      "version_or_commit": "",
+      "mode": "",
+      "prompt_shape": "",
+      "tools_enabled": []
+    },
+    "evidence": [
+      {
+        "type": "trace|source|docs|claim",
+        "path_or_url": "",
+        "lines_or_run_id": "",
+        "supports": [],
+        "summary": ""
+      }
+    ],
+    "gate_assessment": {
+      "G1": {
+        "verdict": "pass|fail|partial|conditional|unknown",
+        "evidence": ""
+      },
+      "G2": {
+        "verdict": "pass|fail|partial|conditional|unknown",
+        "evidence": ""
+      },
+      "G3": {
+        "verdict": "pass|fail|partial|conditional|unknown",
+        "evidence": ""
+      },
+      "G4": {
+        "verdict": "pass|fail|partial|conditional|unknown",
+        "evidence": ""
+      },
+      "G5": {
+        "verdict": "pass|fail|partial|conditional|unknown",
+        "evidence": ""
+      },
+      "G6": {
+        "verdict": "pass|fail|partial|conditional|unknown",
+        "evidence": ""
+      },
+      "G7": {
+        "verdict": "pass|fail|partial|conditional|unknown",
+        "evidence": ""
+      }
+    },
+    "strongest_case_for_rlm": "",
+    "strongest_case_against_rlm": "",
+    "tests_run": [],
+    "tests_not_run": [],
+    "classification": "",
+    "classification_scope": "",
+    "what_would_change_this_verdict": ""
+  },
+  "rules": [
+    "Use unknown when a gate was not tested.",
+    "Use conditional when a product passes only for some configurations or prompt shapes.",
+    "Every pass must cite observed evidence or source paths.",
+    "Every fail must include the strongest plausible contrary interpretation.",
+    "A product-level verdict must summarize all tested run shapes, not collapse them into one label."
+  ],
+  "anti_skill_issue_design": [
+    "Calibration fixtures before judging real targets.",
+    "Evidence packet first, verdict prose second.",
+    "Label-blind review when practical.",
+    "Two-pass adversarial review from the same evidence.",
+    "Deterministic adjudicator over structured reports.",
+    "Prompt-shape matrix classification.",
+    "Negative controls for positive claims.",
+    "Trace diffing against sentinel values.",
+    "Provenance ledger for commands, run IDs, versions, costs, and artifact paths.",
+    "Escalation for disagreement, missing probes, or uncited gate passes."
+  ]
+}

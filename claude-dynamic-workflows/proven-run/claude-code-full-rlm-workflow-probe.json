@@ -1,0 +1,60 @@
+{
+  "artifact_type": "claude_code_full_rlm_workflow_probe",
+  "date": "2026-06-15",
+  "claude_code_version": "2.1.177",
+  "driver": "interactive claudey in tmux after opening /workflows",
+  "workflow_run_id": "wf_41a3e8cd-ab2",
+  "task_id": "w92vm52fu",
+  "classification": "Full RLM for this specific tagged-file/path-handle workflow run shape",
+  "result": {
+    "phrase": "handle-slice-subcall-aggregate",
+    "weight_sum": 114,
+    "validator": "RLM-FULL-WORKFLOW-9c8a71",
+    "active_ids_sorted_by_rank": [
+      "B",
+      "E",
+      "A",
+      "D"
+    ],
+    "excluded_inactive_ids": [
+      "C"
+    ]
+  },
+  "repo_artifacts": {
+    "corpus": "experiments/claude-workflows-full-rlm/corpus.md",
+    "prompt": "experiments/claude-workflows-full-rlm/prompt.txt",
+    "generated_slices": "experiments/claude-workflows-full-rlm/generated-slices/",
+    "slicer_helper": "experiments/claude-workflows-full-rlm/split_corpus.py",
+    "workflow_script": "experiments/claude-workflows-full-rlm/full-rlm-probe-workflow.js",
+    "workflow_run_record": "experiments/claude-workflows-full-rlm/full-rlm-probe-run.json"
+  },
+  "original_claude_artifacts": {
+    "script": "/home/raw/.claude/projects/-home-raw-github-rawwerks-aiewf-2026-rlm-recursive-coding-agent-talk/aa3faa40-7444-4688-8359-273045ccd758/workflows/scripts/full-rlm-probe-wf_41a3e8cd-ab2.js",
+    "run_record": "/home/raw/.claude/projects/-home-raw-github-rawwerks-aiewf-2026-rlm-recursive-coding-agent-talk/aa3faa40-7444-4688-8359-273045ccd758/workflows/wf_41a3e8cd-ab2.json",
+    "subagent_transcripts_dir": "/home/raw/.claude/projects/-home-raw-github-rawwerks-aiewf-2026-rlm-recursive-coding-agent-talk/aa3faa40-7444-4688-8359-273045ccd758/subagents/workflows/wf_41a3e8cd-ab2/"
+  },
+  "observed_structure": {
+    "agent_count": 7,
+    "total_tokens": 198809,
+    "total_tool_calls": 18,
+    "subagent_labels": [
+      "decompose:slicer",
+      "validator",
+      "slice:A",
+      "slice:B",
+      "slice:C",
+      "slice:D",
+      "slice:E"
+    ]
+  },
+  "rubric_gate_assessment": {
+    "G1_model_call_outer_shape": "pass",
+    "G2_prompt_externalization": "pass",
+    "G3_symbolic_handle": "pass",
+    "G4_persistent_executable_environment": "pass",
+    "G5_programmatic_subcalls": "pass",
+    "G6_model_chosen_decomposition": "pass_for_this_run",
+    "G7_symbolic_intermediate_state": "pass"
+  },
+  "scope_caveat": "This proves that a specific Claude Code dynamic workflow shape can be a full RLM. It does not prove that every Claude Code workflow, or a plain prompt workflow without external handles, is full RLM."
+}
