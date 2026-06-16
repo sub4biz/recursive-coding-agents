@@ -178,6 +178,43 @@
 		border: 1px solid color-mix(in oklch, var(--deck-text) 18%, transparent);
 		box-shadow: 0 28px 70px -38px color-mix(in oklch, var(--deck-text) 55%, transparent);
 	}
+	:global(.slide .content .prose .bridge-quotes) {
+		display: grid;
+		gap: clamp(1.1rem, 2.6vw, 1.7rem);
+		margin-top: clamp(1.6rem, 3.8vw, 2.5rem);
+		text-align: left;
+	}
+	:global(.slide .content .prose .bridge-quotes blockquote) {
+		margin: 0;
+		padding: clamp(1rem, 2.3vw, 1.4rem) 0 0;
+		border-top: clamp(3px, 0.35vw, 5px) solid
+			color-mix(in oklch, var(--deck-accent) 62%, var(--deck-text));
+		font-size: clamp(1.35rem, 2.7vw, 2.4rem);
+		font-weight: 650;
+		line-height: 1.16;
+		color: var(--deck-text);
+	}
+	:global(.slide .content .prose .bridge-quotes strong) {
+		color: var(--deck-accent);
+		font-weight: 800;
+	}
+	:global(.slide .content .prose .repo-preview-grid) {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: clamp(0.85rem, 2vw, 1.25rem);
+		margin-top: clamp(1.1rem, 2.6vw, 1.7rem);
+	}
+	:global(.slide .content .prose .repo-preview-grid .repo-title) {
+		font-size: clamp(1.1rem, 1.85vw, 1.45rem);
+	}
+	:global(.slide .content .prose .repo-preview-grid .repo-description) {
+		margin-top: 0.55rem;
+		font-size: clamp(0.88rem, 1.35vw, 1rem);
+		line-height: 1.42;
+	}
+	:global(.slide .content .prose .repo-preview-grid .repo-meta-item) {
+		font-size: clamp(0.74rem, 1.1vw, 0.84rem);
+	}
 	:global(.slide .content .prose .paper-preview) {
 		display: block;
 		overflow: hidden;
@@ -233,11 +270,15 @@
 		color: var(--deck-text);
 		font-weight: 700;
 	}
+	:global(.slide .content .prose .bridge-quotes blockquote strong) {
+		color: var(--deck-accent);
+		font-weight: 800;
+	}
 	:global(.slide .content .prose em) {
 		font-style: normal;
 		color: var(--deck-accent);
 	}
-	:global(.slide .content .prose a) {
+	:global(.slide .content .prose a:not([data-slot='button'])) {
 		color: var(--deck-text);
 		text-decoration: underline;
 		text-decoration-color: color-mix(in srgb, var(--deck-accent) 45%, transparent);
@@ -245,13 +286,14 @@
 		text-underline-offset: 3px;
 		transition: color 0.15s ease;
 	}
-	:global(.slide .content .prose a:hover) {
+	:global(.slide .content .prose a:not([data-slot='button']):hover) {
 		color: var(--deck-accent);
 		text-decoration-color: var(--deck-accent);
 	}
 	@media (max-width: 760px) {
 		:global(.slide .content .prose .url-previews),
 		:global(.slide .content .prose .evidence-split),
+		:global(.slide .content .prose .repo-preview-grid),
 		:global(.slide .content .prose .paper-split) {
 			grid-template-columns: 1fr;
 		}

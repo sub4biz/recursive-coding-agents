@@ -236,9 +236,43 @@ async function evaluateInPage(page, viewport, expression) {
 			deviceScaleFactor: 1,
 			mobile: viewport.width < 760
 		});
-		await delay(350);
+		async function evaluateWithReloadRetry(params, attempts = 4) {
+			for (let attempt = 0; attempt < attempts; attempt++) {
+				try {
+					return await send('Runtime.evaluate', params);
+				} catch (error) {
+					const message = error instanceof Error ? error.message : String(error);
+					if (!/Execution context was destroyed|Cannot find context|Inspected target navigated/i.test(message)) {
+						throw error;
+					}
+					if (attempt === attempts - 1) throw error;
+					await delay(500);
+				}
+			}
+		}
 
-		const result = await send('Runtime.evaluate', {
+		await evaluateWithReloadRetry({
+			expression: `new Promise((resolve) => {
+				const deadline = performance.now() + 8000;
+				const tick = () => {
+					if (document.readyState !== 'loading' && document.querySelector('.slide')) {
+						resolve(true);
+						return;
+					}
+					if (performance.now() > deadline) {
+						resolve(false);
+						return;
+					}
+					requestAnimationFrame(tick);
+				};
+				tick();
+			})`,
+			awaitPromise: true,
+			returnByValue: true
+		});
+		await delay(150);
+
+		const result = await evaluateWithReloadRetry({
 			expression,
 			awaitPromise: true,
 			returnByValue: true

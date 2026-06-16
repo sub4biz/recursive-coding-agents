@@ -1,7 +1,7 @@
 ---
 label: What is an RLM?
 variant: split
-eyebrow: Recursive Language Model
+eyebrow: Recursive Language Models
 ---
 
 <div class="paper-split">
