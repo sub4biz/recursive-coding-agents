@@ -388,7 +388,7 @@
 		display: grid;
 		align-content: end;
 		overflow: hidden;
-		min-height: clamp(25rem, 62dvh, 40rem);
+		min-height: var(--ftw-pretext-proof-height, clamp(25rem, 62dvh, 40rem));
 		padding: clamp(1.25rem, 3vw, 2.2rem);
 		border-radius: 8px;
 		background: var(--deck-text);
@@ -427,13 +427,15 @@
 	}
 	:global(.slide .content .prose .ftw-proof) {
 		display: grid;
-		align-content: center;
+		align-content: stretch;
+		min-height: var(--ftw-pretext-proof-height, auto);
 	}
 	:global(.slide .content .prose .ftw-proof p) {
 		display: grid;
 		grid-template-columns: minmax(17rem, 0.92fr) minmax(0, 1fr);
 		gap: clamp(1.25rem, 3vw, 2.15rem);
-		align-items: start;
+		align-items: center;
+		min-height: var(--ftw-row-measured-height, auto);
 		margin: 0;
 		padding: clamp(1.05rem, 2.5vw, 1.55rem) 0;
 		border-top: 2px solid color-mix(in oklch, var(--deck-text) 36%, transparent);
@@ -446,7 +448,7 @@
 		font-weight: 860;
 		line-height: 1.04;
 		color: var(--deck-text);
-		text-wrap: balance;
+		text-wrap: wrap;
 	}
 	:global(.slide .content .prose .ftw-proof span) {
 		max-width: 27ch;
@@ -455,7 +457,7 @@
 		font-weight: 560;
 		line-height: 1.3;
 		color: var(--deck-muted);
-		text-wrap: pretty;
+		text-wrap: wrap;
 	}
 	:global(.slide .content .prose .bridge-quotes) {
 		display: grid;
@@ -744,6 +746,7 @@
 	:global(.slide .content .prose a.url-preview:not([data-slot='button'])),
 	:global(.slide .content .prose a.evidence-card:not([data-slot='button'])),
 	:global(.slide .content .prose a.workflow-article:not([data-slot='button'])),
+	:global(.slide .content .prose a.applied-example:not([data-slot='button'])),
 	:global(.slide .content .prose a.prose-program:not([data-slot='button'])) {
 		color: inherit;
 		text-decoration: none;
@@ -751,11 +754,19 @@
 	:global(.slide .content .prose a.url-preview:not([data-slot='button']):hover),
 	:global(.slide .content .prose a.evidence-card:not([data-slot='button']):hover),
 	:global(.slide .content .prose a.workflow-article:not([data-slot='button']):hover),
+	:global(.slide .content .prose a.applied-example:not([data-slot='button']):hover),
 	:global(.slide .content .prose a.prose-program:not([data-slot='button']):hover) {
 		color: inherit;
 		text-decoration: none;
 	}
 	@media (max-width: 760px) {
+		:global(.slide .content .prose p) {
+			line-height: 1.34;
+		}
+		:global(.slide .content .prose ul) {
+			gap: 0.7rem;
+			margin-top: 0.85rem;
+		}
 		:global(.slide .content .prose .bridge-quotes) {
 			width: 100%;
 			gap: 1.35rem;
@@ -808,18 +819,46 @@
 			font-size: 0.86rem;
 			line-height: 1.24;
 		}
+		:global(.slide .content .prose .repo-preview-grid) {
+			gap: 0.58rem;
+			margin-top: 0.75rem;
+		}
+		:global(.slide .content .prose .repo-preview-grid .repo-title) {
+			font-size: 1.02rem;
+		}
+		:global(.slide .content .prose .repo-preview-grid .repo-description) {
+			margin-top: 0.28rem;
+			font-size: 0.74rem;
+			line-height: 1.28;
+		}
+		:global(.slide .content .prose .repo-preview-grid .repo-meta-item) {
+			font-size: 0.66rem;
+		}
 		:global(.slide .content .prose .workflow-showcase) {
 			grid-template-areas:
 				'copy'
 				'article'
 				'examples';
+			gap: 0.68rem;
 		}
 		:global(.slide .content .prose .workflow-showcase .workflow-example-links) {
 			grid-template-columns: 1fr;
+			gap: 0.58rem;
 		}
 		:global(.slide .content .prose .workflow-article img) {
 			height: auto;
-			max-height: 34dvh;
+			max-height: 26dvh;
+		}
+		:global(.slide .content .prose .workflow-copy p) {
+			font-size: 0.92rem;
+			line-height: 1.28;
+		}
+		:global(.slide .content .prose .workflow-example-links .url-preview) {
+			min-height: 0;
+			padding: 0.55rem;
+		}
+		:global(.slide .content .prose .workflow-example-links .preview-caption) {
+			gap: 0.16rem;
 		}
 		:global(.slide .content .prose .prose-program) {
 			min-height: 0;
@@ -858,14 +897,122 @@
 			font-size: 0.66rem;
 			line-height: 1.3;
 		}
+		:global(.slide .content .prose .verdict-compare) {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 0.72rem;
+			align-items: start;
+			margin-top: 0.72rem;
+		}
+		:global(.slide .content .prose .verdict) {
+			gap: 0.36rem;
+		}
+		:global(.slide .content .prose .verdict-call) {
+			font-size: 1.18rem;
+		}
+		:global(.slide .content .prose .verdict-when) {
+			font-size: 0.56rem;
+			letter-spacing: 0.12em;
+		}
 		:global(.slide .content .prose .verdict-tweet img) {
 			height: auto;
 			width: 100%;
-			max-width: 26rem;
-			max-height: 52dvh;
+			max-width: none;
+			max-height: 40dvh;
 		}
 		:global(.slide .content .prose .evidence-card img) {
-			max-height: 38dvh;
+			max-height: 32dvh;
+		}
+	}
+	@media (max-width: 380px) and (max-height: 760px) {
+		:global(.slide .content .prose h1) {
+			margin-bottom: 0.62rem;
+			line-height: 1;
+		}
+		:global(.slide .content .prose h2) {
+			margin-bottom: 0.62rem;
+			line-height: 1.04;
+		}
+		:global(.slide .content .prose p) {
+			margin-top: 0.55rem;
+			line-height: 1.24;
+		}
+		:global(.slide .content .prose ul) {
+			gap: 0.42rem;
+			margin-top: 0.58rem;
+		}
+		:global(.slide .content .prose .url-previews) {
+			gap: 0.45rem;
+			margin-top: 0.5rem;
+		}
+		:global(.slide .content .prose .url-preview) {
+			padding: 0.48rem;
+		}
+		:global(.slide .content .prose .url-preview img) {
+			height: 74px;
+		}
+		:global(.slide .content .prose .url-preview .preview-caption) {
+			gap: 0.16rem;
+			margin-top: 0.3rem;
+		}
+		:global(.slide .content .prose .url-preview .preview-source) {
+			font-size: 0.54rem;
+			letter-spacing: 0.08em;
+		}
+		:global(.slide .content .prose .url-preview strong) {
+			font-size: 0.8rem;
+			line-height: 1.08;
+		}
+		:global(.slide .content .prose .url-preview .preview-note) {
+			font-size: 0.68rem;
+			line-height: 1.18;
+		}
+		:global(.slide .content .prose .workflow-showcase) {
+			gap: 0.48rem;
+		}
+		:global(.slide .content .prose .workflow-article img) {
+			max-height: 18dvh;
+		}
+		:global(.slide .content .prose .workflow-article span) {
+			padding: 0.42rem 0.55rem;
+			font-size: 0.55rem;
+		}
+		:global(.slide .content .prose .workflow-example-links .url-preview) {
+			padding: 0.42rem;
+		}
+		:global(.slide .content .prose .evidence-split) {
+			gap: 0.62rem;
+		}
+		:global(.slide .content .prose .repo-preview-grid) {
+			gap: 0.46rem;
+			margin-top: 0.52rem;
+		}
+		:global(.slide .content .prose .prose-program-grid) {
+			gap: 0.48rem;
+			margin-top: 0.52rem;
+		}
+		:global(.slide .content .prose .prose-program) {
+			gap: 0.3rem;
+			padding: 0.55rem;
+		}
+		:global(.slide .content .prose .prose-program-label) {
+			font-size: 0.56rem;
+		}
+		:global(.slide .content .prose .prose-program strong) {
+			font-size: 0.86rem;
+			line-height: 1.06;
+		}
+		:global(.slide .content .prose .prose-program-points) {
+			gap: 0.2rem;
+		}
+		:global(.slide .content .prose .prose-program-points li) {
+			padding-left: 0.62rem;
+			font-size: 0.68rem;
+			line-height: 1.16;
+		}
+		:global(.slide .content .prose .prose-program pre) {
+			padding: 0.38rem;
+			font-size: 0.54rem;
+			line-height: 1.14;
 		}
 	}
 </style>

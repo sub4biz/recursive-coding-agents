@@ -187,4 +187,50 @@
 			flex-basis: 100%;
 		}
 	}
+
+	@media (max-width: 380px) and (max-height: 760px) {
+		.applied-list {
+			margin-top: 0.48rem;
+		}
+
+		.applied-example {
+			grid-template-columns: 1.72rem minmax(0, 1fr);
+			gap: 0.52rem;
+			padding: 0.38rem 0;
+		}
+
+		.example-icon {
+			width: 1.72rem;
+			height: 1.72rem;
+			border-radius: 6px;
+		}
+
+		.example-icon :global(svg) {
+			width: 0.92rem;
+			height: 0.92rem;
+		}
+
+		.example-copy {
+			gap: 0.16rem;
+		}
+
+		.example-row strong {
+			font-size: 0.84rem;
+			line-height: 1.06;
+		}
+
+		.example-source {
+			font-size: 0.58rem;
+		}
+
+		.example-body {
+			display: -webkit-box;
+			overflow: hidden;
+			font-size: 0.72rem;
+			line-height: 1.18;
+			line-clamp: 2;
+			-webkit-box-orient: vertical;
+			-webkit-line-clamp: 2;
+		}
+	}
 </style>

@@ -305,6 +305,97 @@ function assertUnifiedWidths(caseName, result) {
 			.join('\n');
 		fail(`${caseName}: slide content overflows horizontally.\n${detail}`);
 	}
+
+	if (caseName.includes('mobile')) {
+		const verticalOverflowing = result.items.filter((item) => item.verticalOverflow);
+		if (verticalOverflowing.length > 0) {
+			const detail = verticalOverflowing
+				.map(
+					(item) =>
+						`${item.id} ${item.label}: slide ${item.slideHeight}px, content ${item.contentHeight}px, viewport ${item.viewportHeight}px`
+				)
+				.join('\n');
+			fail(`${caseName}: slide content exceeds the viewport vertically.\n${detail}`);
+		}
+	}
+}
+
+function assertTakeawaysPretext(caseName, result) {
+	if (result.error) fail(`${caseName}: ${result.error}`);
+	if (result.ready !== 'true') fail(`${caseName}: takeaways Pretext measurement did not become ready.`);
+	if (result.rows.length !== 3) {
+		fail(`${caseName}: expected 3 measured takeaways rows; found ${result.rows.length}.`);
+	}
+
+	const unmeasured = result.rows.filter(
+		(row) =>
+			row.titleLines === null ||
+			row.bodyLines === null ||
+			row.measuredHeight === null ||
+			row.titleLines < 1 ||
+			row.bodyLines < 1 ||
+			row.measuredHeight <= 0
+	);
+	if (unmeasured.length > 0) {
+		fail(`${caseName}: takeaways rows are missing Pretext metrics.\n${JSON.stringify(unmeasured, null, 2)}`);
+	}
+
+	if (result.proofHeightVar === null) fail(`${caseName}: missing --ftw-pretext-proof-height.`);
+	const proofDrift = Math.abs(result.proofHeightVar - result.proofHeight);
+	if (proofDrift > 14) {
+		fail(
+			`${caseName}: Pretext proof height differs from rendered proof height by ${proofDrift.toFixed(2)}px.\n${JSON.stringify(result, null, 2)}`
+		);
+	}
+
+	const rowDrifts = result.rows
+		.map((row, index) => ({
+			index: index + 1,
+			drift: Math.abs(row.measuredHeight - row.height),
+			measuredHeight: row.measuredHeight,
+			height: row.height
+		}))
+		.filter((row) => row.drift > 14);
+	if (rowDrifts.length > 0) {
+		fail(`${caseName}: Pretext row heights drift from rendered rows.\n${JSON.stringify(rowDrifts, null, 2)}`);
+	}
+
+	if (caseName === 'desktop') {
+		const offCenterRows = result.rows.filter((row) => row.centerDrift > 2);
+		if (offCenterRows.length > 0) {
+			fail(
+				`${caseName}: takeaways title/body text boxes are not center-aligned.\n${JSON.stringify(offCenterRows, null, 2)}`
+			);
+		}
+
+		const drift = Math.abs(result.lockupHeight - result.proofHeight);
+		if (drift > 2) {
+			fail(
+				`${caseName}: Pretext-aligned takeaways columns drifted by ${drift.toFixed(2)}px.\n${JSON.stringify(result, null, 2)}`
+			);
+		}
+	}
+}
+
+function assertAlignmentAudit(caseName, result) {
+	if (result.error) fail(`${caseName}: ${result.error}`);
+	if (result.failures.length > 0) {
+		fail(
+			`${caseName}: mathematical slide alignment audit failed.\n${JSON.stringify(result.failures, null, 2)}`
+		);
+	}
+}
+
+function assertPretextTextAudit(caseName, result) {
+	if (result.error) fail(`${caseName}: ${result.error}`);
+	if (result.failures.length > 0) {
+		fail(`${caseName}: Pretext text audit failed.\n${JSON.stringify(result.failures, null, 2)}`);
+	}
+	if (result.measured.length < 18) {
+		fail(
+			`${caseName}: Pretext text audit measured too few elements (${result.measured.length}).\n${JSON.stringify(result, null, 2)}`
+		);
+	}
 }
 
 await assertStaticLayoutContract();
@@ -353,10 +444,14 @@ try {
 					label: slide.getAttribute('data-label') ?? '',
 					variant: slide.getAttribute('data-variant') ?? '',
 					width: Number(contentRect.width.toFixed(2)),
+					contentHeight: Number(contentRect.height.toFixed(2)),
+					slideHeight: Math.ceil(slide.scrollHeight),
+					viewportHeight: window.innerHeight,
 					left: Number(contentRect.left.toFixed(2)),
 					right: Number(contentRect.right.toFixed(2)),
 					horizontalOverflow:
-						contentRect.left < slideRect.left - 1 || contentRect.right > slideRect.right + 1
+						contentRect.left < slideRect.left - 1 || contentRect.right > slideRect.right + 1,
+					verticalOverflow: slide.scrollHeight > window.innerHeight + 2
 				};
 			})
 		};
@@ -364,12 +459,531 @@ try {
 
 	for (const viewport of [
 		{ name: 'desktop', width: 1440, height: 900 },
-		{ name: 'mobile', width: 390, height: 844 }
+		{ name: 'mobile', width: 390, height: 844 },
+		{ name: 'narrow-mobile', width: 360, height: 740 }
 	]) {
 		const result = await evaluateInPage(chromium.page, viewport, layoutExpression);
 		assertUnifiedWidths(viewport.name, result);
 		console.log(
 			`${viewport.name} slide layout assertions passed (${result.items.length} slides, width ${result.items[0].width}px).`
+		);
+
+		const takeawaysPretextExpression = `((async () => {
+			await document.fonts?.ready;
+
+			const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+			const panel = document.querySelector('.ftw-takeaways');
+			if (!panel) return { error: 'Takeaways panel did not render.' };
+			if (panel.getAttribute('data-pretext-unsupported')) {
+				return { error: 'Pretext unsupported: ' + panel.getAttribute('data-pretext-unsupported') };
+			}
+
+			const deadline = performance.now() + 4000;
+			while (performance.now() < deadline && panel.getAttribute('data-pretext-ready') !== 'true') {
+				await delay(50);
+			}
+
+			const lockup = panel.querySelector('.ftw-lockup');
+			const proof = panel.querySelector('.ftw-proof');
+			if (!lockup || !proof) return { error: 'Takeaways lockup/proof elements are missing.' };
+
+			const numberAttr = (element, name) => {
+				const value = element.getAttribute(name);
+				return value === null ? null : Number(value);
+			};
+
+			return {
+				ready: panel.getAttribute('data-pretext-ready'),
+				lockupHeight: Number(lockup.getBoundingClientRect().height.toFixed(2)),
+				proofHeight: Number(proof.getBoundingClientRect().height.toFixed(2)),
+				proofHeightVar:
+					Number.parseFloat(getComputedStyle(panel).getPropertyValue('--ftw-pretext-proof-height')) ||
+					null,
+				rows: Array.from(panel.querySelectorAll('.ftw-proof-row')).map((row) => {
+					const title = row.querySelector('.ftw-proof-title');
+					const body = row.querySelector('.ftw-proof-body');
+					const titleRect = title?.getBoundingClientRect();
+					const bodyRect = body?.getBoundingClientRect();
+					return {
+						height: Number(row.getBoundingClientRect().height.toFixed(2)),
+						measuredHeight:
+							Number.parseFloat(getComputedStyle(row).getPropertyValue('--ftw-row-measured-height')) ||
+							null,
+						centerDrift:
+							titleRect && bodyRect
+								? Number(
+										Math.abs(
+											titleRect.top +
+												titleRect.height / 2 -
+												(bodyRect.top + bodyRect.height / 2)
+										).toFixed(2)
+									)
+								: null,
+						titleLines: numberAttr(row, 'data-pretext-title-lines'),
+						bodyLines: numberAttr(row, 'data-pretext-body-lines'),
+						titleHeight: numberAttr(row, 'data-pretext-title-height'),
+						bodyHeight: numberAttr(row, 'data-pretext-body-height')
+					};
+				})
+			};
+		})())`;
+		const takeawaysPretextResult = await evaluateInPage(
+			chromium.page,
+			viewport,
+			takeawaysPretextExpression
+		);
+		assertTakeawaysPretext(viewport.name, takeawaysPretextResult);
+		console.log(`${viewport.name} takeaways Pretext assertions passed.`);
+
+		const alignmentAuditExpression = `((async () => {
+			await document.fonts?.ready;
+			await Promise.all(
+				Array.from(document.images).map((img) => {
+					if (img.complete) return true;
+					return new Promise((resolve) => {
+						img.addEventListener('load', resolve, { once: true });
+						img.addEventListener('error', resolve, { once: true });
+					});
+				})
+			);
+
+			const failures = [];
+			const checked = [];
+			const desktop = innerWidth > 760;
+			const rect = (element) => {
+				const r = element.getBoundingClientRect();
+				return {
+					left: Number(r.left.toFixed(2)),
+					top: Number(r.top.toFixed(2)),
+					right: Number(r.right.toFixed(2)),
+					bottom: Number(r.bottom.toFixed(2)),
+					width: Number(r.width.toFixed(2)),
+					height: Number(r.height.toFixed(2)),
+					centerX: Number((r.left + r.width / 2).toFixed(2)),
+					centerY: Number((r.top + r.height / 2).toFixed(2))
+				};
+			};
+			const visible = (element) => {
+				const r = element.getBoundingClientRect();
+				return r.width > 0 && r.height > 0;
+			};
+			const push = (rule, message, data = {}) => failures.push({ rule, message, ...data });
+			const near = (a, b, tolerance) => Math.abs(a - b) <= tolerance;
+			const sameHorizontalEdges = (rule, a, b, tolerance = 2) => {
+				const ar = rect(a);
+				const br = rect(b);
+				if (!near(ar.left, br.left, tolerance) || !near(ar.right, br.right, tolerance)) {
+					push(rule, 'horizontal edges differ', { a: ar, b: br });
+				}
+			};
+			const orderedVertically = (rule, elements, minGap = 0) => {
+				const rs = elements.map(rect);
+				for (let i = 1; i < rs.length; i++) {
+					if (rs[i].top < rs[i - 1].bottom + minGap - 1) {
+						push(rule, 'elements are not stacked in order', { previous: rs[i - 1], current: rs[i] });
+					}
+				}
+			};
+			const sameHeightTopBottom = (rule, elements, tolerance = 4) => {
+				const rs = elements.map(rect);
+				for (let i = 1; i < rs.length; i++) {
+					if (
+						!near(rs[0].top, rs[i].top, 2) ||
+						!near(rs[0].bottom, rs[i].bottom, tolerance) ||
+						!near(rs[0].height, rs[i].height, tolerance)
+					) {
+						push(rule, 'items are not top/bottom/height aligned', { first: rs[0], current: rs[i] });
+					}
+				}
+			};
+			const sameWidthLeftRight = (rule, elements, tolerance = 2) => {
+				const rs = elements.map(rect);
+				for (let i = 1; i < rs.length; i++) {
+					if (
+						!near(rs[0].left, rs[i].left, tolerance) ||
+						!near(rs[0].right, rs[i].right, tolerance) ||
+						!near(rs[0].width, rs[i].width, tolerance)
+					) {
+						push(rule, 'items do not share horizontal edges/width', { first: rs[0], current: rs[i] });
+					}
+				}
+			};
+			const desktopPairOrMobileStack = (rule, container, itemSelector, { centerY = true } = {}) => {
+				const items = Array.from(container.querySelectorAll(itemSelector)).filter(visible);
+				checked.push({ rule, count: items.length });
+				if (items.length < 2) return;
+				if (desktop) {
+					const [a, b] = items;
+					const ar = rect(a);
+					const br = rect(b);
+					if (centerY && !near(ar.centerY, br.centerY, 4)) {
+						push(rule, 'desktop pair is not vertically center-aligned', { a: ar, b: br });
+					}
+				} else {
+					sameHorizontalEdges(rule, items[0], items[1]);
+					orderedVertically(rule, items, 8);
+				}
+			};
+
+			for (const slide of document.querySelectorAll('.slide')) {
+				const content = slide.querySelector(':scope > .content');
+				if (!content) {
+					push('slide-content', 'slide is missing direct .content', { slide: slide.id });
+					continue;
+				}
+				const slideRect = rect(slide);
+				const contentRect = rect(content);
+				checked.push({ rule: 'slide-content-centered', slide: slide.id });
+				if (!near(slideRect.centerX, contentRect.centerX, 2)) {
+					push('slide-content-centered', 'content is not horizontally centered in slide', {
+						slide: slide.id,
+						slideRect,
+						contentRect
+					});
+				}
+				if (contentRect.left < slideRect.left - 1 || contentRect.right > slideRect.right + 1) {
+					push('slide-content-contained', 'content escapes slide horizontally', {
+						slide: slide.id,
+						slideRect,
+						contentRect
+					});
+				}
+				for (const element of content.querySelectorAll('*')) {
+					if (!(element instanceof HTMLElement) || !visible(element)) continue;
+					const style = getComputedStyle(element);
+					if (style.position === 'fixed') continue;
+					if (element.scrollWidth > element.clientWidth + 2) {
+						push('internal-horizontal-overflow', 'element has clipped horizontal overflow', {
+							slide: slide.id,
+							className: element.className,
+							tagName: element.tagName,
+							clientWidth: element.clientWidth,
+							scrollWidth: element.scrollWidth
+						});
+					}
+					const elementRect = rect(element);
+					if (elementRect.left < slideRect.left - 2 || elementRect.right > slideRect.right + 2) {
+						push('internal-horizontal-overflow', 'element escapes slide horizontal bounds', {
+							slide: slide.id,
+							className: element.className,
+							tagName: element.tagName,
+							slideRect,
+							elementRect
+						});
+					}
+				}
+			}
+
+			for (const split of document.querySelectorAll('.paper-split, .evidence-split')) {
+				desktopPairOrMobileStack('split-layout', split, ':scope > *');
+			}
+
+			for (const previews of document.querySelectorAll('.url-previews, .repo-preview-grid')) {
+				const items = Array.from(previews.children).filter(visible);
+				checked.push({ rule: 'preview-grid', count: items.length });
+				if (desktop && items.length >= 2) {
+					sameHeightTopBottom('preview-grid', items, 4);
+				} else if (!desktop && items.length >= 2) {
+					sameWidthLeftRight('preview-mobile-stack', items);
+					orderedVertically('preview-mobile-stack', items, 8);
+				}
+			}
+
+			for (const list of document.querySelectorAll('.project-list, .applied-list')) {
+				const rows = Array.from(list.children).filter(visible);
+				checked.push({ rule: 'structured-list', count: rows.length });
+				if (rows.length > 1) {
+					sameWidthLeftRight('structured-list', rows);
+					orderedVertically('structured-list', rows, 0);
+				}
+			}
+
+			const rlmGrid = document.querySelector('[data-rlm-check-grid]');
+			if (rlmGrid) {
+				checked.push({ rule: 'rlm-check-grid' });
+				const activePanel = rlmGrid.querySelector(
+					desktop ? '.rlm-check-table' : '.rlm-check-cards'
+				);
+				if (!activePanel || !visible(activePanel)) {
+					push('rlm-check-grid', 'expected active rubric layout is not visible', { desktop });
+				} else if (activePanel.scrollWidth > activePanel.clientWidth + 2) {
+					push('rlm-check-grid', 'active rubric layout has horizontal overflow', {
+						clientWidth: activePanel.clientWidth,
+						scrollWidth: activePanel.scrollWidth
+					});
+				}
+			}
+
+			const verdict = document.querySelector('.verdict-compare');
+			if (verdict) {
+				const columns = Array.from(verdict.querySelectorAll('.verdict')).filter(visible);
+				checked.push({ rule: 'verdict-compare', count: columns.length });
+				if (columns.length !== 2) {
+					push('verdict-compare', 'expected exactly two verdict columns', { count: columns.length });
+				} else if (desktop) {
+					const [left, right] = columns.map(rect);
+					if (!near(left.width, right.width, 2) || !near(left.height, right.height, 4)) {
+						push('verdict-compare', 'desktop verdict columns are not equal sized', { left, right });
+					}
+					const parent = rect(verdict);
+					if (!near((left.centerX + right.centerX) / 2, parent.centerX, 2)) {
+						push('verdict-compare', 'verdict columns are not symmetric around parent center', {
+							parent,
+							left,
+							right
+						});
+					}
+					for (const column of columns) {
+						const cr = rect(column);
+						for (const child of column.querySelectorAll('.verdict-call, .verdict-tweet, .verdict-when')) {
+							const childRect = rect(child);
+							if (!near(childRect.centerX, cr.centerX, 2)) {
+								push('verdict-column-center', 'verdict child is not centered in its column', {
+									column: cr,
+									child: childRect,
+									className: child.className
+								});
+							}
+						}
+					}
+				} else {
+					const [left, right] = columns.map(rect);
+					const parent = rect(verdict);
+					if (!near(left.top, right.top, 2) || !near(left.width, right.width, 2)) {
+						push('verdict-mobile-pair', 'mobile verdict columns are not top-aligned/equal width', {
+							left,
+							right
+						});
+					}
+					if (!near((left.centerX + right.centerX) / 2, parent.centerX, 2)) {
+						push('verdict-mobile-pair', 'mobile verdict columns are not symmetric around parent center', {
+							parent,
+							left,
+							right
+						});
+					}
+				}
+			}
+
+			const workflow = document.querySelector('.workflow-showcase');
+			if (workflow) {
+				const copy = workflow.querySelector('.workflow-copy');
+				const article = workflow.querySelector('.workflow-article');
+				const examples = workflow.querySelector('.workflow-example-links');
+				checked.push({ rule: 'workflow-showcase' });
+				if (!copy || !article || !examples) {
+					push('workflow-showcase', 'workflow showcase is missing expected regions');
+				} else if (desktop) {
+					const copyRect = rect(copy);
+					const articleRect = rect(article);
+					if (!near(copyRect.centerY, articleRect.centerY, 4)) {
+						push('workflow-showcase', 'copy and article are not vertically center-aligned', {
+							copy: copyRect,
+							article: articleRect
+						});
+					}
+					sameHorizontalEdges('workflow-examples-span', examples, workflow, 2);
+					const cards = Array.from(examples.querySelectorAll('.url-preview')).filter(visible);
+					if (cards.length === 2) {
+						const [a, b] = cards.map(rect);
+						if (!near(a.top, b.top, 2) || !near(a.bottom, b.bottom, 4) || !near(a.width, b.width, 2)) {
+							push('workflow-example-cards', 'workflow example cards are not aligned/equal width', {
+								a,
+								b
+							});
+						}
+					}
+				} else {
+					sameHorizontalEdges('workflow-mobile-stack', copy, article);
+					sameHorizontalEdges('workflow-mobile-stack', article, examples);
+					orderedVertically('workflow-mobile-stack', [copy, article, examples], 8);
+				}
+			}
+
+			const bridge = document.querySelector('.bridge-quotes');
+			if (bridge) {
+				const quotes = Array.from(bridge.querySelectorAll('.bridge-quote')).filter(visible);
+				const rule = bridge.querySelector('.bridge-rule');
+				checked.push({ rule: 'bridge-quotes' });
+				if (quotes.length === 2 && rule) {
+					const first = rect(quotes[0]);
+					const second = rect(quotes[1]);
+					const ruleRect = rect(rule);
+					const gapMidpoint = first.bottom + (second.top - first.bottom) / 2;
+					if (!near(ruleRect.centerY, gapMidpoint, 2)) {
+						push('bridge-quotes', 'bridge rule is not centered between quote boxes', {
+							first,
+							rule: ruleRect,
+							second
+						});
+					}
+				}
+			}
+
+			const proseProgramGrid = document.querySelector('.prose-program-grid');
+			if (proseProgramGrid) {
+				const cards = Array.from(proseProgramGrid.querySelectorAll('.prose-program')).filter(visible);
+				checked.push({ rule: 'prose-program-grid', count: cards.length });
+				if (desktop && cards.length === 2) {
+					const [a, b] = cards.map(rect);
+					if (!near(a.top, b.top, 2) || !near(a.bottom, b.bottom, 4) || !near(a.height, b.height, 4)) {
+						push('prose-program-grid', 'desktop prose program cards are not equal-height/aligned', {
+							a,
+							b
+						});
+					}
+				} else if (!desktop && cards.length === 2) {
+					sameHorizontalEdges('prose-program-mobile-stack', cards[0], cards[1]);
+					orderedVertically('prose-program-mobile-stack', cards, 8);
+				}
+			}
+
+			return { checked, failures };
+		})())`;
+		const alignmentAuditResult = await evaluateInPage(chromium.page, viewport, alignmentAuditExpression);
+		assertAlignmentAudit(viewport.name, alignmentAuditResult);
+		console.log(
+			`${viewport.name} mathematical alignment audit passed (${alignmentAuditResult.checked.length} rule groups).`
+		);
+
+		const pretextTextAuditExpression = `((async () => {
+			await document.fonts?.ready;
+			const pretext = await import('/node_modules/@chenglou/pretext/dist/layout.js');
+			const failures = [];
+			const measured = [];
+			const skipped = [];
+			const selectors = [
+				{
+					label: 'takeaways proof text',
+					selector: '.ftw-proof-title, .ftw-proof-body',
+					maxHeightDrift: 14,
+					maxLineDrift: 0
+				},
+				{
+					label: 'workflow card text',
+					selector:
+						'.workflow-example-links strong, .workflow-example-links .preview-source, .workflow-example-links .preview-note',
+					maxHeightDrift: 14,
+					maxLineDrift: 1
+				},
+				{
+					label: 'OpenProse program text',
+					selector: '.prose-program-label, .prose-program > strong, .prose-program-points li',
+					maxHeightDrift: 14,
+					maxLineDrift: 1,
+					skipNestedInlineText: true
+				},
+				{
+					label: 'repo description text',
+					selector: '.repo-description',
+					maxHeightDrift: 14,
+					maxLineDrift: 1
+				},
+				{
+					label: 'verdict date text',
+					selector: '.verdict-when',
+					maxHeightDrift: 8,
+					maxLineDrift: 0
+				}
+			];
+			const pxNumber = (value) => {
+				const number = Number.parseFloat(value);
+				return Number.isFinite(number) ? number : null;
+			};
+			const fontFamilyForCanvas = (fontFamily) => {
+				if (!fontFamily || /\\bsystem-ui\\b/.test(fontFamily)) return 'Inter';
+				return fontFamily;
+			};
+			const canvasFont = (style) =>
+				\`\${style.fontStyle || 'normal'} \${style.fontWeight || '400'} \${style.fontSize || '16px'} \${fontFamilyForCanvas(style.fontFamily)}\`;
+			const lineHeight = (style) => {
+				const explicit = pxNumber(style.lineHeight);
+				if (explicit !== null) return explicit;
+				const fontSize = pxNumber(style.fontSize);
+				return fontSize === null ? 16 * 1.2 : fontSize * 1.2;
+			};
+			const verticalBox = (style) =>
+				(pxNumber(style.paddingTop) ?? 0) +
+				(pxNumber(style.paddingBottom) ?? 0) +
+				(pxNumber(style.borderTopWidth) ?? 0) +
+				(pxNumber(style.borderBottomWidth) ?? 0);
+			const horizontalBox = (style) =>
+				(pxNumber(style.paddingLeft) ?? 0) +
+				(pxNumber(style.paddingRight) ?? 0) +
+				(pxNumber(style.borderLeftWidth) ?? 0) +
+				(pxNumber(style.borderRightWidth) ?? 0);
+			const actualLineCount = (element) => {
+				const range = document.createRange();
+				range.selectNodeContents(element);
+				const tops = [];
+				for (const rect of range.getClientRects()) {
+					if (rect.width <= 0 || rect.height <= 0) continue;
+					if (!tops.some((top) => Math.abs(top - rect.top) < 2)) tops.push(rect.top);
+				}
+				range.detach();
+				return tops.length;
+			};
+			const hasMixedInlineText = (element) =>
+				Array.from(element.querySelectorAll('*')).some((child) => child.textContent?.trim());
+			const isUnsupportedWrap = (style) => /\\b(balance|pretty)\\b/.test(style.textWrap || '');
+
+			for (const group of selectors) {
+				for (const element of document.querySelectorAll(group.selector)) {
+					const text = element.textContent?.replace(/\\s+/g, ' ').trim() ?? '';
+					const rect = element.getBoundingClientRect();
+					const style = getComputedStyle(element);
+					if (!text || rect.width <= 0 || rect.height <= 0) {
+						skipped.push({ label: group.label, reason: 'empty-or-hidden', text });
+						continue;
+					}
+					if (isUnsupportedWrap(style)) {
+						skipped.push({ label: group.label, reason: \`unsupported text-wrap: \${style.textWrap}\`, text });
+						continue;
+					}
+					if (group.skipNestedInlineText && hasMixedInlineText(element)) {
+						skipped.push({ label: group.label, reason: 'mixed nested inline text', text });
+						continue;
+					}
+
+					const width = Math.max(1, (element.clientWidth || rect.width) - horizontalBox(style));
+					const options = { whiteSpace: style.whiteSpace === 'pre-wrap' ? 'pre-wrap' : 'normal' };
+					const prepared = pretext.prepare(text, canvasFont(style), options);
+					const layout = pretext.layout(prepared, width, lineHeight(style));
+					const renderedLines = actualLineCount(element);
+					const renderedHeight = renderedLines * lineHeight(style);
+					const elementHeight = rect.height - verticalBox(style);
+					const heightDrift = Math.abs(layout.height - renderedHeight);
+					const lineDrift = Math.abs(layout.lineCount - renderedLines);
+					const item = {
+						label: group.label,
+						selector: group.selector,
+						text,
+						width: Number(width.toFixed(2)),
+						pretextHeight: Number(layout.height.toFixed(2)),
+						renderedHeight: Number(renderedHeight.toFixed(2)),
+						elementHeight: Number(elementHeight.toFixed(2)),
+						heightDrift: Number(heightDrift.toFixed(2)),
+						pretextLines: layout.lineCount,
+						renderedLines,
+						lineDrift
+					};
+					measured.push(item);
+					if (heightDrift > group.maxHeightDrift || lineDrift > group.maxLineDrift) {
+						failures.push(item);
+					}
+				}
+			}
+
+			return { measured, skipped, failures };
+		})())`;
+		const pretextTextAuditResult = await evaluateInPage(
+			chromium.page,
+			viewport,
+			pretextTextAuditExpression
+		);
+		assertPretextTextAudit(viewport.name, pretextTextAuditResult);
+		console.log(
+			`${viewport.name} Pretext text audit passed (${pretextTextAuditResult.measured.length} measured, ${pretextTextAuditResult.skipped.length} skipped).`
 		);
 	}
 

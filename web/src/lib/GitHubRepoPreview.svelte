@@ -301,15 +301,94 @@
 	@media (max-width: 520px) {
 		:global(.repo-preview) {
 			border-radius: var(--radius-md);
+			gap: 0.62rem;
+			padding-block: 0.78rem;
+		}
+
+		:global(.repo-header),
+		:global(.repo-content),
+		:global(.repo-actions) {
+			padding-inline: 0.82rem;
+		}
+
+		.repo-heading {
+			gap: 0.5rem;
+		}
+
+		.github-mark {
+			width: 1.75rem;
+			height: 1.75rem;
 		}
 
 		:global(.repo-title) {
-			font-size: 1.35rem;
+			font-size: 1.02rem;
+			line-height: 1.06;
+		}
+
+		:global(.repo-description) {
+			margin-top: 0.34rem;
+			font-size: 0.76rem;
+			line-height: 1.28;
+		}
+
+		.repo-meta {
+			gap: 0.2rem 0.46rem;
+		}
+
+		.repo-meta-item {
+			min-height: 1.05rem;
+			gap: 0.24rem;
+			font-size: 0.66rem;
 		}
 
 		:global(.repo-actions) :global([data-slot='button']) {
-			width: 100%;
-			min-height: 2.75rem;
+			width: auto;
+			min-height: 2rem;
+			padding-inline: 0.6rem;
+			font-size: 0.72rem;
+		}
+	}
+
+	@media (max-width: 380px) and (max-height: 760px) {
+		:global(.repo-preview) {
+			gap: 0.42rem;
+			padding-block: 0.58rem;
+		}
+
+		:global(.repo-header),
+		:global(.repo-content),
+		:global(.repo-actions) {
+			padding-inline: 0.68rem;
+		}
+
+		.github-mark {
+			width: 1.48rem;
+			height: 1.48rem;
+		}
+
+		:global(.repo-title) {
+			font-size: 0.9rem;
+		}
+
+		:global(.repo-description) {
+			margin-top: 0.22rem;
+			font-size: 0.66rem;
+			line-height: 1.18;
+		}
+
+		.repo-meta-item {
+			min-height: 0.9rem;
+			font-size: 0.57rem;
+		}
+
+		:global(.repo-actions) {
+			gap: 0.34rem;
+		}
+
+		:global(.repo-actions) :global([data-slot='button']) {
+			min-height: 1.7rem;
+			padding-inline: 0.46rem;
+			font-size: 0.62rem;
 		}
 	}
 </style>

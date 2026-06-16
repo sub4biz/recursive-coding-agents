@@ -4,11 +4,11 @@
 	import X from '@lucide/svelte/icons/x';
 
 	const COLS = [
-		{ crit: 'Executable environment'},
-		{ crit: 'Prompt externalized'},
-		{ crit: 'Code calls the model'},
-		{ crit: 'Model picks decomposition'},
-		{ crit: 'State stays symbolic'}
+		{ crit: 'Executable environment', short: 'Exec' },
+		{ crit: 'Prompt externalized', short: 'Prompt' },
+		{ crit: 'Code calls the model', short: 'Call' },
+		{ crit: 'Model picks decomposition', short: 'Pick' },
+		{ crit: 'State stays symbolic', short: 'State' }
 	];
 
 	const ROWS = [
@@ -21,8 +21,9 @@
 	];
 </script>
 
-<div class="mx-auto w-full text-left">
-	<Table.Root>
+<div class="rlm-check-grid mx-auto w-full text-left" data-rlm-check-grid>
+	<div class="rlm-check-table">
+		<Table.Root>
 		<Table.Header>
 			<Table.Row class="border-border hover:bg-transparent">
 				<Table.Head class="w-[28%]"></Table.Head>
@@ -59,5 +60,127 @@
 				</Table.Row>
 			{/each}
 		</Table.Body>
-	</Table.Root>
+		</Table.Root>
+	</div>
+
+	<div class="rlm-check-cards" aria-label="RLM rubric checks">
+		<div class="rlm-check-legend" aria-hidden="true">
+			<span></span>
+			{#each COLS as col}
+				<span>{col.short}</span>
+			{/each}
+		</div>
+		{#each ROWS as row}
+			<article class={row.rlm ? 'rlm-row-card rlm-row-card--pass' : 'rlm-row-card'}>
+				<div class="rlm-row-card__header">
+					<strong>{row.sys}</strong>
+					<span>{row.tag}</span>
+				</div>
+				<ul>
+					{#each row.marks as mark, i}
+						<li class:present={mark === 1} aria-label={`${COLS[i].crit}: ${mark ? 'yes' : 'no'}`}>
+							{#if mark}
+								<Check aria-hidden="true" />
+							{:else}
+								<X aria-hidden="true" />
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</article>
+		{/each}
+	</div>
 </div>
+
+<style>
+	.rlm-check-cards {
+		display: none;
+	}
+
+	@media (max-width: 760px) {
+		.rlm-check-table {
+			display: none;
+		}
+
+		.rlm-check-cards {
+			display: grid;
+			gap: 0.34rem;
+		}
+
+		.rlm-check-legend,
+		.rlm-row-card {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) repeat(5, 2.36rem);
+			gap: 0.34rem;
+			align-items: center;
+		}
+
+		.rlm-check-legend {
+			padding: 0 0.62rem;
+			color: var(--deck-muted);
+			font-size: 0.55rem;
+			font-weight: 700;
+			line-height: 1;
+			text-align: center;
+			text-transform: uppercase;
+		}
+
+		.rlm-row-card {
+			padding: 0.48rem 0.62rem;
+			border: 1px solid color-mix(in oklch, var(--deck-text) 16%, transparent);
+			border-radius: 8px;
+			background: color-mix(in oklch, var(--deck-text) 4%, var(--deck-bg));
+		}
+
+		.rlm-row-card--pass {
+			border-color: color-mix(in oklch, var(--deck-accent) 45%, transparent);
+			background: color-mix(in oklch, var(--deck-accent) 10%, var(--deck-bg));
+		}
+
+		.rlm-row-card__header {
+			display: grid;
+			gap: 0.1rem;
+			min-width: 0;
+		}
+
+		.rlm-row-card__header strong {
+			font-size: 0.78rem;
+			line-height: 1.12;
+			color: var(--deck-text);
+		}
+
+		.rlm-row-card--pass .rlm-row-card__header strong {
+			color: var(--deck-accent);
+		}
+
+		.rlm-row-card__header span {
+			display: none;
+		}
+
+		.rlm-row-card ul {
+			grid-column: 2 / -1;
+			display: grid;
+			grid-template-columns: subgrid;
+			margin: 0;
+			padding: 0;
+			list-style: none;
+		}
+
+		.rlm-row-card li {
+			display: grid;
+			place-items: center;
+			min-width: 0;
+			color: var(--deck-muted);
+		}
+
+		.rlm-row-card li.present {
+			color: var(--deck-accent);
+		}
+
+		.rlm-row-card li :global(svg) {
+			width: 0.82rem;
+			height: 0.82rem;
+			color: currentColor;
+		}
+	}
+</style>

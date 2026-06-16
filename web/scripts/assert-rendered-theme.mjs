@@ -273,17 +273,24 @@ try {
 					document.body.append(probe);
 					const color = getComputedStyle(probe).color;
 					probe.remove();
-					return color;
+					const canvas = document.createElement('canvas');
+					canvas.width = 1;
+					canvas.height = 1;
+					const context = canvas.getContext('2d');
+					context.clearRect(0, 0, 1, 1);
+					context.fillStyle = color;
+					context.fillRect(0, 0, 1, 1);
+					return Array.from(context.getImageData(0, 0, 1, 1).data).join(',');
 				};
 
 				return {
 					background: root.getPropertyValue('--background').trim(),
 					primary: root.getPropertyValue('--primary').trim(),
 						primaryForeground: root.getPropertyValue('--primary-foreground').trim(),
-						titleColor: titleStyle.color,
-						ctaBackground: ctaStyle?.backgroundColor ?? null,
-						ctaColor: ctaStyle?.color ?? null,
-						activeDotBackground: dotStyle.backgroundColor,
+						titleColor: normalizeColor(titleStyle.color),
+						ctaBackground: ctaStyle ? normalizeColor(ctaStyle.backgroundColor) : null,
+						ctaColor: ctaStyle ? normalizeColor(ctaStyle.color) : null,
+						activeDotBackground: normalizeColor(dotStyle.backgroundColor),
 					expectedForeground: normalizeColor('var(--foreground)'),
 					expectedPrimary: normalizeColor('var(--primary)'),
 					expectedPrimaryForeground: normalizeColor('var(--primary-foreground)')
