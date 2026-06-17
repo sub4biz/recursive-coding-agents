@@ -65,6 +65,9 @@ components:
 
 # Design System: Recursive Coding Agents Talk
 
+Audience: internal human and agent maintainers editing the public deck/site.
+This is a public-safe design brief, not end-user documentation.
+
 ## 1. Overview
 
 **Creative North Star: "The Reliability Briefing"**

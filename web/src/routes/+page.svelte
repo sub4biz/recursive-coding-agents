@@ -646,7 +646,7 @@
 	}
 	:global(.slide .content .prose .verdict-tweet img) {
 		display: block;
-		height: min(62dvh, 600px);
+		height: min(54dvh, 520px);
 		width: auto;
 		max-width: 100%;
 		border-radius: 8px;
@@ -655,18 +655,6 @@
 		transition:
 			transform 0.16s ease,
 			border-color 0.16s ease;
-	}
-	:global(.slide .content .prose .benchmark-tweets .verdict-tweet img) {
-		width: min(40vw, 500px);
-		height: min(73dvh, 620px);
-		object-fit: cover;
-		object-position: top center;
-	}
-	@media (width <= 760px) {
-		:global(.slide .content .prose .benchmark-tweets .verdict-tweet img) {
-			width: 100%;
-			height: min(42dvh, 340px);
-		}
 	}
 	:global(.slide .content .prose .verdict-tweet:hover img) {
 		transform: translateY(-2px);
@@ -909,7 +897,7 @@
 		:global(.slide .content .prose .verdict-compare) {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			gap: 0.72rem;
-			align-items: start;
+			align-items: center;
 			margin-top: 0.72rem;
 		}
 		:global(.slide .content .prose .verdict) {
@@ -922,11 +910,20 @@
 			font-size: 0.56rem;
 			letter-spacing: 0.12em;
 		}
+		:global(.slide .content .prose .verdict-tweet) {
+			display: grid;
+			place-items: center;
+			width: 100%;
+			height: min(38dvh, 320px);
+			overflow: hidden;
+			border-radius: 8px;
+		}
 		:global(.slide .content .prose .verdict-tweet img) {
 			height: auto;
 			width: 100%;
 			max-width: none;
-			max-height: 40dvh;
+			max-height: 100%;
+			object-fit: contain;
 		}
 		:global(.slide .content .prose .evidence-card img) {
 			max-height: 32dvh;
@@ -1116,7 +1113,8 @@
 			font-size: clamp(1.25rem, 1rem + 1.2vw, 1.8rem);
 		}
 		:global(.slide .content .prose .verdict-tweet img) {
-			height: min(50dvh, 430px);
+			height: min(46dvh, 410px);
+			max-height: none;
 		}
 		:global(.slide .content .prose .verdict-when) {
 			font-size: 0.64rem;
@@ -1148,23 +1146,6 @@
 			line-height: 1.18;
 		}
 	}
-
-	@media (width <= 760px) {
-		:global(.slide .content .prose .benchmark-tweets) {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			gap: 0.72rem;
-			align-items: start;
-		}
-		:global(.slide .content .prose .benchmark-tweets .verdict) {
-			width: 100%;
-			justify-items: center;
-		}
-		:global(.slide .content .prose .benchmark-tweets .verdict-tweet img) {
-			width: 100%;
-			height: min(42dvh, 340px);
-		}
-	}
-
 	:global(.slide .content .prose .mismanaged-previews .url-preview img) {
 		height: clamp(185px, 28dvh, 295px);
 	}

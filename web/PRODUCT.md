@@ -1,8 +1,14 @@
 # Product
 
+Audience: internal human and agent maintainers shaping the public deck/site.
+This is a public-safe product brief, not end-user documentation.
+
 ## Register
 
-brand
+- **Project name:** Recursive Coding Agents
+- **Format:** public talk deck and companion website
+- **Canonical site:** https://recursivecodingagents.com
+- **Speaker/author:** Raymond Weitekamp (OpenProse / RAW.works)
 
 ## Users
 

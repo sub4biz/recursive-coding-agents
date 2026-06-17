@@ -316,6 +316,21 @@ function assertUnifiedWidths(caseName, result) {
 			.join('\n');
 		fail(`${caseName}: slide content exceeds the viewport vertically.\n${detail}`);
 	}
+
+	if (!result.dotRail) fail(`${caseName}: slide dot rail was not measurable.`);
+	if (result.dotRail.centerDrift > 1.5) {
+		fail(`${caseName}: slide dot rail is not vertically centered.\n${JSON.stringify(result.dotRail, null, 2)}`);
+	}
+	if (result.dotRail.visualLeft < result.dotRail.contentRight + 2) {
+		fail(
+			`${caseName}: slide dot visuals overlap the content column.\n${JSON.stringify(result.dotRail, null, 2)}`
+		);
+	}
+	if (result.dotRail.visualRightGap < 2) {
+		fail(
+			`${caseName}: slide dot visuals are clipped by the viewport edge.\n${JSON.stringify(result.dotRail, null, 2)}`
+		);
+	}
 }
 
 function assertTakeawaysPretext(caseName, result) {
@@ -416,11 +431,42 @@ try {
 				});
 			})
 		);
+		const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+		const dotDeadline = performance.now() + 4000;
+		while (!document.querySelector('.dots .dot-visual') && performance.now() < dotDeadline) {
+			await delay(50);
+		}
 
 		const slides = Array.from(document.querySelectorAll('.slide'));
 		if (slides.length === 0) return { error: 'No slides rendered.', items: [] };
+		const contentRects = slides
+			.map((slide) => slide.querySelector(':scope > .content')?.getBoundingClientRect())
+			.filter(Boolean);
+		const dotRail = document.querySelector('.dots');
+		const dotRailRect = dotRail?.getBoundingClientRect();
+		const dotVisualRects = Array.from(document.querySelectorAll('.dot-visual')).map((dot) =>
+			dot.getBoundingClientRect()
+		);
+		const dotVisualLeft = Math.min(...dotVisualRects.map((rect) => rect.left));
+		const dotVisualRight = Math.max(...dotVisualRects.map((rect) => rect.right));
 
 		return {
+			dotRail:
+				dotRailRect && dotVisualRects.length > 0 && contentRects.length > 0
+					? {
+							top: Number(dotRailRect.top.toFixed(2)),
+							bottom: Number(dotRailRect.bottom.toFixed(2)),
+							height: Number(dotRailRect.height.toFixed(2)),
+							centerDrift: Number(
+								Math.abs(dotRailRect.top + dotRailRect.height / 2 - window.innerHeight / 2).toFixed(2)
+							),
+							visualLeft: Number(dotVisualLeft.toFixed(2)),
+							visualRight: Number(dotVisualRight.toFixed(2)),
+							visualRightGap: Number((window.innerWidth - dotVisualRight).toFixed(2)),
+							contentRight: Number(Math.max(...contentRects.map((rect) => rect.right)).toFixed(2)),
+							viewportWidth: window.innerWidth
+						}
+					: null,
 			items: slides.map((slide) => {
 				const content = slide.querySelector(':scope > .content');
 				if (!content) {
@@ -652,7 +698,10 @@ try {
 					if (!(element instanceof HTMLElement) || !visible(element)) continue;
 					const style = getComputedStyle(element);
 					if (style.position === 'fixed') continue;
-					if (element.scrollWidth > element.clientWidth + 2) {
+					const intentionalHorizontalScroll =
+						element.classList.contains('benchmark-tweets') ||
+						element.classList.contains('benchmark-tweets__track');
+					if (!intentionalHorizontalScroll && element.scrollWidth > element.clientWidth + 2) {
 						push('internal-horizontal-overflow', 'element has clipped horizontal overflow', {
 							slide: slide.id,
 							className: element.className,
@@ -662,7 +711,11 @@ try {
 						});
 					}
 					const elementRect = rect(element);
-					if (elementRect.left < slideRect.left - 2 || elementRect.right > slideRect.right + 2) {
+					if (
+						!intentionalHorizontalScroll &&
+						!element.closest('.benchmark-tweets__track') &&
+						(elementRect.left < slideRect.left - 2 || elementRect.right > slideRect.right + 2)
+					) {
 						push('internal-horizontal-overflow', 'element escapes slide horizontal bounds', {
 							slide: slide.id,
 							className: element.className,
@@ -712,22 +765,40 @@ try {
 						scrollWidth: activePanel.scrollWidth
 					});
 				}
+				const rubricLink = rlmGrid.querySelector('.rlm-rubric-link');
+				if (!rubricLink || !visible(rubricLink)) {
+					push('rlm-rubric-link', 'RLM rubric link is missing or hidden');
+				} else {
+					const gridRect = rect(rlmGrid);
+					const linkRect = rect(rubricLink);
+					if (!rubricLink.href.includes('/recursive-coding-agents/tree/main/rlm-rubric')) {
+						push('rlm-rubric-link', 'RLM rubric link targets the wrong URL', {
+							href: rubricLink.href
+						});
+					}
+					if (!near(gridRect.centerX, linkRect.centerX, 2)) {
+						push('rlm-rubric-link', 'RLM rubric link is not centered under the grid', {
+							grid: gridRect,
+							link: linkRect
+						});
+					}
+				}
 			}
 
-			const verdict = document.querySelector('.verdict-compare');
-			if (verdict) {
+			for (const verdict of document.querySelectorAll('.verdict-compare')) {
+				const rule = 'verdict-compare';
 				const columns = Array.from(verdict.querySelectorAll('.verdict')).filter(visible);
-				checked.push({ rule: 'verdict-compare', count: columns.length });
+				checked.push({ rule, count: columns.length });
 				if (columns.length !== 2) {
-					push('verdict-compare', 'expected exactly two verdict columns', { count: columns.length });
+					push(rule, 'expected exactly two verdict columns', { count: columns.length });
 				} else if (desktop) {
 					const [left, right] = columns.map(rect);
 					if (!near(left.width, right.width, 2) || !near(left.height, right.height, 4)) {
-						push('verdict-compare', 'desktop verdict columns are not equal sized', { left, right });
+						push(rule, 'desktop verdict columns are not equal sized', { left, right });
 					}
 					const parent = rect(verdict);
 					if (!near((left.centerX + right.centerX) / 2, parent.centerX, 2)) {
-						push('verdict-compare', 'verdict columns are not symmetric around parent center', {
+						push(rule, 'verdict columns are not symmetric around parent center', {
 							parent,
 							left,
 							right
@@ -739,6 +810,7 @@ try {
 							const childRect = rect(child);
 							if (!near(childRect.centerX, cr.centerX, 2)) {
 								push('verdict-column-center', 'verdict child is not centered in its column', {
+									rule,
 									column: cr,
 									child: childRect,
 									className: child.className
@@ -749,18 +821,106 @@ try {
 				} else {
 					const [left, right] = columns.map(rect);
 					const parent = rect(verdict);
-					if (!near(left.top, right.top, 2) || !near(left.width, right.width, 2)) {
-						push('verdict-mobile-pair', 'mobile verdict columns are not top-aligned/equal width', {
-							left,
-							right
-						});
-					}
 					if (!near((left.centerX + right.centerX) / 2, parent.centerX, 2)) {
 						push('verdict-mobile-pair', 'mobile verdict columns are not symmetric around parent center', {
+							rule,
 							parent,
 							left,
 							right
 						});
+					}
+					if (!near(left.width, right.width, 2)) {
+						push('verdict-mobile-pair', 'mobile verdict columns are not equal width', {
+							rule,
+							left,
+							right
+						});
+					}
+					if (!near(left.centerY, right.centerY, 3)) {
+						push('verdict-mobile-pair', 'mobile verdict columns are not vertically center-aligned', {
+							left,
+							right
+						});
+					}
+					const tweetFrames = columns.map((column) => column.querySelector('.verdict-tweet')).filter(Boolean);
+					const whens = columns.map((column) => column.querySelector('.verdict-when')).filter(Boolean);
+					if (tweetFrames.length === 2) {
+						const [a, b] = tweetFrames.map(rect);
+						if (!near(a.top, b.top, 2) || !near(a.bottom, b.bottom, 2) || !near(a.height, b.height, 2)) {
+							push('verdict-mobile-tweet-frames', 'mobile verdict tweet frames are not equal-height/aligned', {
+								a,
+								b
+							});
+						}
+					}
+					if (whens.length === 2) {
+						const [a, b] = whens.map(rect);
+						if (!near(a.centerY, b.centerY, 2) || !near(a.bottom, b.bottom, 2)) {
+							push('verdict-mobile-date-alignment', 'mobile verdict date captions are not aligned', {
+								a,
+								b
+							});
+						}
+					}
+				}
+			}
+
+			const benchmarkTweets = document.querySelector('[data-benchmark-tweets]');
+			if (benchmarkTweets) {
+				const track = benchmarkTweets.querySelector('.benchmark-tweets__track');
+				const panels = Array.from(benchmarkTweets.querySelectorAll('.benchmark-tweets__panel')).filter(visible);
+				const frames = Array.from(benchmarkTweets.querySelectorAll('.benchmark-tweets__link')).filter(visible);
+				const dots = benchmarkTweets.querySelector('.benchmark-tweets__dots');
+				const dotButtons = Array.from(
+					benchmarkTweets.querySelectorAll('.benchmark-tweets__dot')
+				).filter(visible);
+				checked.push({ rule: 'benchmark-tweets-carousel', count: panels.length });
+				if (!track || panels.length !== 2 || frames.length !== 2) {
+					push('benchmark-tweets-carousel', 'benchmark carousel is missing expected panels', {
+						panels: panels.length,
+						frames: frames.length
+					});
+				} else if (desktop) {
+					sameHeightTopBottom('benchmark-tweets-desktop', panels, 4);
+					if (dots && visible(dots)) {
+						push('benchmark-tweets-desktop', 'carousel dots should be hidden on desktop');
+					}
+				} else {
+					const [firstPanel, secondPanel] = panels.map(rect);
+					const [firstFrame, secondFrame] = frames.map(rect);
+					if (track.scrollWidth <= track.clientWidth + 12) {
+						push('benchmark-tweets-mobile-carousel', 'mobile benchmark carousel is not horizontally scrollable', {
+							clientWidth: track.clientWidth,
+							scrollWidth: track.scrollWidth
+						});
+					}
+					if (
+						!near(firstPanel.width, secondPanel.width, 2) ||
+						!near(firstFrame.width, secondFrame.width, 2) ||
+						!near(firstFrame.height, secondFrame.height, 2) ||
+						secondPanel.left <= firstPanel.right
+					) {
+						push('benchmark-tweets-mobile-carousel', 'mobile benchmark tweet panels are not equal-sized carousel items', {
+							firstPanel,
+							secondPanel,
+							firstFrame,
+							secondFrame
+						});
+					}
+					if (!dots || !visible(dots) || dotButtons.length !== 2) {
+						push('benchmark-tweets-mobile-dots', 'mobile benchmark carousel must show two dot controls', {
+							dotButtons: dotButtons.length
+						});
+					} else {
+						const dotsRect = rect(dots);
+						const parent = rect(benchmarkTweets);
+						if (!near(dotsRect.centerX, parent.centerX, 2) || dotsRect.top < firstFrame.bottom - 1) {
+							push('benchmark-tweets-mobile-dots', 'mobile benchmark carousel dots are not centered below the panel', {
+								dots: dotsRect,
+								parent,
+								firstFrame
+							});
+						}
 					}
 				}
 			}
@@ -1285,6 +1445,99 @@ try {
 	);
 	if (scrollCueResult.error) fail(`${scrollCueResult.error}\n${JSON.stringify(scrollCueResult, null, 2)}`);
 	console.log('global next slide cue passed (idle reveal, click advance, final-slide hide).');
+
+	const benchmarkCarouselExpression = `((async () => {
+		const deck = document.querySelector('.deck');
+		const slide = Array.from(document.querySelectorAll('.slide')).find(
+			(candidate) => candidate.getAttribute('data-label')?.toLowerCase() === 'too hot to benchmark'
+		);
+		if (!deck || !slide) {
+			return { error: 'Benchmark carousel slide did not render.' };
+		}
+
+		const originalMatchMedia = window.matchMedia;
+		window.matchMedia = (query) => {
+			if (query.includes('prefers-reduced-motion')) {
+				return {
+					matches: false,
+					media: query,
+					onchange: null,
+					addListener() {},
+					removeListener() {},
+					addEventListener() {},
+					removeEventListener() {},
+					dispatchEvent() {
+						return false;
+					}
+				};
+			}
+			return originalMatchMedia.call(window, query);
+		};
+
+		const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+		deck.style.scrollBehavior = 'auto';
+		deck.scrollTop = slide.offsetTop;
+		let carousel = slide.querySelector('[data-benchmark-tweets]');
+		const renderDeadline = performance.now() + 4000;
+		while (!carousel && performance.now() < renderDeadline) {
+			await delay(50);
+			carousel = slide.querySelector('[data-benchmark-tweets]');
+		}
+		if (!carousel) {
+			return { error: 'Benchmark carousel did not render inside the target slide.' };
+		}
+
+		const activeIndex = () =>
+			Array.from(carousel.querySelectorAll('.benchmark-tweets__dot')).findIndex((dot) =>
+				dot.classList.contains('active')
+			);
+		const visibleDots = () =>
+			Array.from(carousel.querySelectorAll('.benchmark-tweets__dot')).filter((dot) => {
+				const rect = dot.getBoundingClientRect();
+				return rect.width > 0 && rect.height > 0;
+			});
+
+		try {
+			carousel.querySelector('[data-benchmark-panel="0"]')?.scrollIntoView({
+				behavior: 'auto',
+				block: 'nearest',
+				inline: 'center'
+			});
+			await delay(700);
+
+			const dots = visibleDots();
+			if (dots.length !== 2) {
+				return { error: 'Mobile benchmark carousel must expose two visible dot controls.', dots: dots.length };
+			}
+
+			const start = activeIndex();
+			if (start !== 0) {
+				return { error: 'Benchmark carousel should start on the first post.', start };
+			}
+
+			const deadline = performance.now() + 6200;
+			while (performance.now() < deadline) {
+				if (activeIndex() === 1) {
+					return { start, end: activeIndex() };
+				}
+				await delay(100);
+			}
+
+			return { error: 'Benchmark carousel did not auto-rotate to the second post.', start, end: activeIndex() };
+		} finally {
+			window.matchMedia = originalMatchMedia;
+		}
+	})())`;
+
+	const benchmarkCarouselResult = await evaluateInPage(
+		chromium.page,
+		{ name: 'mobile benchmark carousel', width: 390, height: 844 },
+		benchmarkCarouselExpression
+	);
+	if (benchmarkCarouselResult.error) {
+		fail(`${benchmarkCarouselResult.error}\n${JSON.stringify(benchmarkCarouselResult, null, 2)}`);
+	}
+	console.log('mobile benchmark carousel passed (dots visible, auto-rotates).');
 } finally {
 	if (chromium) await chromium.stop();
 	if (vite) {

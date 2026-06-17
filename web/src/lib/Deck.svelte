@@ -208,12 +208,13 @@
 	/* ---- Position indicator (fixed, top-right) ---- */
 	.dots {
 		position: fixed;
-		top: clamp(1rem, 3vw, 1.8rem);
-		right: clamp(0.4rem, 2vw, 1.1rem);
+		top: 50%;
+		right: clamp(0rem, 0.45vw, 0.45rem);
 		z-index: 10;
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
+		transform: translateY(-50%);
 	}
 
 	/* The anchor is a generous tap target; the visible dot lives inside it. */
@@ -331,6 +332,20 @@
 	}
 
 	@media (width <= 760px) {
+		.dots {
+			right: calc(env(safe-area-inset-right) - 0.28rem);
+		}
+
+		.dot {
+			width: 24px;
+			height: 32px;
+		}
+
+		.dot-visual {
+			width: 0.52rem;
+			height: 0.52rem;
+		}
+
 		.next-slide-cue {
 			bottom: max(0.8rem, env(safe-area-inset-bottom));
 			width: 2.35rem;

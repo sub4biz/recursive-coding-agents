@@ -1,5 +1,9 @@
 # Recursive Coding Agents Talk Site
 
+Audience: human contributors and maintainer/developer agents working on the
+public SvelteKit deck/site. End users should start at the live site or the
+repo-root `README.md`.
+
 A **website that is also the presentation deck** for Raymond Weitekamp's
 Recursive Coding Agents talk at AI Engineer World's Fair 2026. Full-screen
 slides are navigable by scroll, swipe, or keyboard, while still rendering as a
@@ -29,6 +33,7 @@ hot-reloaded.
 bun run build        # production build
 bun run preview      # preview the production build
 bun run check        # type-check (svelte-check)
+bun run test:design  # browser layout assertions across desktop/mobile viewports
 bun run test:theme   # static + browser assertions for imported theme tokens
 bun run theme:default # restore the checked-in Zen Inspired tweakcn theme
 bun run theme:import  # import a shadcn/tweakcn registry theme
@@ -130,6 +135,8 @@ Use `src/app.css` for slide-specific layout/type scale and
 - **`src/lib/shadcn-theme.ts`** — converts a shadcn registry item into safe CSS
   custom properties for `:root` and `.dark`, with selectors specific enough to
   win over the fallback shadcn tokens in `layout.css`.
+- **`.impeccable/`** — shared design-system configuration for the deck. Local
+  live-edit state and per-developer runtime files are ignored by `.gitignore`.
 
 ## Deploy
 
@@ -144,6 +151,12 @@ bun run deploy
 
 Cloudflare Git-connected builds should use this directory (`web/`) as the project
 root and `bun run build` as the build command.
+
+Production deploys require maintainer Cloudflare/Wrangler authentication for the
+configured custom-domain routes. Outside contributors should use `bun run build`,
+`bun run preview`, `bun run deploy:dry`, or `bun run cf:dev`.
+
+Bundled preview images and screenshots are documented in [ASSETS.md](ASSETS.md).
 
 ## License
 

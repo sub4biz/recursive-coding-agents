@@ -3,6 +3,20 @@
 Talk and website for **Recursive Coding Agents** — Raymond Weitekamp (OpenProse),
 AI Engineer World's Fair 2026.
 
+## Documentation audiences
+
+All checked-in docs are public-safe, but they serve different readers:
+
+| Audience | Start here | Purpose |
+| --- | --- | --- |
+| External human readers | This `README.md`, the live site, `rlm-rubric/README.md` | Understand the talk, the RLM definition, and the example set. |
+| External agent users / evaluators | `rlm-rubric/rlm-rubric.md`, `rlm-rubric/rlm-judging-methodology.md`, `claude-dynamic-workflows/`, `openprose/` | Classify systems against the RLM gates or reuse the public examples as calibration fixtures. |
+| Human contributors / maintainers | `web/README.md`, `web/ASSETS.md`, `scripts/deploy-web.sh`, `.githooks/` | Run, test, modify, verify, and deploy the public site. |
+| Internal human + agent maintainers | `web/PRODUCT.md`, `web/DESIGN.md`, `web/.impeccable/` | Preserve product intent, design rules, and maintainer context while editing the deck/site. |
+
+Private operational context for agents belongs in mycelium/git notes, not in
+public markdown files.
+
 ## Layout
 
 ```

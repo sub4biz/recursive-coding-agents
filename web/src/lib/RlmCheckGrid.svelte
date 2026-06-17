@@ -94,9 +94,41 @@
 			</article>
 		{/each}
 	</div>
+
+	<a
+		class="rlm-rubric-link"
+		href="https://github.com/rawwerks/recursive-coding-agents/tree/main/rlm-rubric"
+		target="_blank"
+		rel="noopener noreferrer"
+	>
+		Open the RLM rubric
+	</a>
 </div>
 
 <style>
+	.rlm-rubric-link {
+		display: block;
+		width: fit-content;
+		margin: clamp(0.7rem, 1.8dvh, 1.05rem) auto 0;
+		font-size: clamp(0.8rem, 0.74rem + 0.22vw, 0.95rem);
+		font-weight: 700;
+		line-height: 1.2;
+		color: var(--deck-accent);
+		text-align: center;
+		text-decoration: none;
+	}
+
+	.rlm-rubric-link:hover {
+		text-decoration: underline;
+		text-underline-offset: 0.22em;
+	}
+
+	.rlm-rubric-link:focus-visible {
+		outline: 2px solid var(--deck-accent);
+		outline-offset: 4px;
+		border-radius: 4px;
+	}
+
 	.rlm-check-cards {
 		display: none;
 	}
@@ -219,6 +251,11 @@
 			width: 0.98rem;
 			height: 0.98rem;
 			color: currentColor;
+		}
+
+		.rlm-rubric-link {
+			margin-top: 0.55rem;
+			font-size: 0.74rem;
 		}
 	}
 
