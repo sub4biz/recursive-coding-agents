@@ -1,21 +1,14 @@
 # Recursive Coding Agents
 
-Public talk deck, RLM rubric, and calibration examples for Raymond
-Weitekamp's **Recursive Coding Agents** talk at AI Engineer World's Fair 2026.
+Public talk website/deck, RLM rubric, and calibration examples for Raymond Weitekamp's **Recursive Coding Agents** talk at AI Engineer World's Fair 2026.
 
 The live presentation is a website: **https://recursivecodingagents.com**
 
 ## Why this exists
 
-Modern coding agents are powerful, but reliability is still the bottleneck. This
-project explains recursive coding agents through the lens of **Recursive Language
-Models (RLMs)**: systems that keep context as symbolic state, use code to inspect
-and slice it, call models or agents over those slices, and aggregate the result
-through a verifiable process.
+Modern coding agents are powerful, but reliability is still the bottleneck. This project explains how to apply the principles of **Recursive Language Models (RLMs)** to coding agents. RLMs are systems that keep context as symbolic state, use code to inspect and slice it, call models or agents over those slices, and aggregate the result through a verifiable process.
 
-The repo is both a companion artifact for the talk and a public calibration set:
-it gives humans and agents concrete examples of what counts as an RLM, what only
-looks like one, and how to judge the difference.
+The repo is both a companion artifact for the talk and a public calibration set: it gives humans and agents concrete examples of run shapes that satisfy the RLM rubric, nearby shapes that do not, and how to judge the difference.
 
 ## Start here
 
@@ -38,24 +31,13 @@ recursive-coding-agents/
 └── openprose/                 OpenProse program examples: RLM vs not-RLM
 ```
 
-The example folders are intentionally verdict-shaped. In `claude-dynamic-workflows/`
-and `openprose/`, files under `rlm/` are positive examples; files under
-`not-rlm/` are nearby negative controls.
+The example folders are intentionally verdict-shaped. In `claude-dynamic-workflows/` and `openprose/`, files under `rlm/` are passing or intended-passing examples; files under `not-rlm/` are nearby negative controls.
 
-Read the verdicts by run shape, not by product label. A coding agent with
-subagents, loops, bash, durable files, or a repo handle can deserve credit for
-the gates it really satisfies. It still is not a full RLM unless the run also
-externalizes the task context behind handles, lets the model choose a
-decomposition, makes programmatic model/subagent calls over constructed slices or
-subproblems, and aggregates symbolic intermediate state into the final answer.
+Read the verdicts by run shape, not by product label. A coding agent with subagents, loops, bash, durable files, or a repo handle should get credit for the gates it actually satisfies. It still is not a full RLM unless the run also externalizes the task context behind handles, lets the model choose a decomposition, makes programmatic model/subagent calls over constructed slices or subproblems, and aggregates symbolic intermediate state into the final answer.
 
 ## One-line RLM definition
 
-An RLM moves the task context into a persistent executable environment as
-symbolic state, lets the root model work through handles and metadata, lets the
-model write code that inspects and slices that state, recursively calls models or
-agents over the slices, and returns the final answer through the outer
-model-call interface.
+An RLM moves the task context into a persistent executable environment as symbolic state, lets the root model work through handles and metadata, lets the model write code that inspects and slices that state, recursively calls models or agents over the slices, and returns the final answer through the outer model-call interface.
 
 ## License
 
