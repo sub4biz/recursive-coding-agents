@@ -12,5 +12,3 @@ eyebrow: The RLM rubric
 ## Lots of things feel close.
 
 <RlmCheckGrid />
-
-Only an RLM checks every operational box here.

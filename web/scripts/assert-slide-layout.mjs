@@ -995,6 +995,9 @@ try {
 		}
 
 		const originalMatchMedia = window.matchMedia;
+		const originalSetTimeout = window.setTimeout;
+		window.setTimeout = (handler, timeout = 0, ...args) =>
+			originalSetTimeout(handler, timeout >= 19000 ? 250 : timeout, ...args);
 		window.matchMedia = (query) => {
 			if (query.includes('prefers-reduced-motion')) {
 				return {
@@ -1082,15 +1085,16 @@ try {
 		const deck = document.querySelector('.deck');
 		const firstSlide = document.querySelector('#slide-1');
 		const secondSlide = document.querySelector('#slide-2');
-		const cue = document.querySelector('#slide-1 .scroll-cue');
-		if (!deck || !firstSlide || !secondSlide || !cue) {
-			return { error: 'Title slide must render a .scroll-cue link to slide 2.' };
-		}
-		if (cue.getAttribute('href') !== '#slide-2') {
-			return { error: \`Title scroll cue href must be #slide-2; found \${cue.getAttribute('href')}.\` };
+		const thirdSlide = document.querySelector('#slide-3');
+		const lastSlide = document.querySelector('.slide:last-of-type');
+		if (!deck || !firstSlide || !secondSlide || !thirdSlide || !lastSlide) {
+			return { error: 'Deck must render first, second, third, and final slides for cue testing.' };
 		}
 
 		const originalMatchMedia = window.matchMedia;
+		const originalSetTimeout = window.setTimeout;
+		window.setTimeout = (handler, timeout = 0, ...args) =>
+			originalSetTimeout(handler, timeout >= 19000 ? 250 : timeout, ...args);
 		window.matchMedia = (query) => {
 			if (query.includes('prefers-reduced-motion')) {
 				return {
@@ -1109,7 +1113,8 @@ try {
 			return originalMatchMedia.call(window, query);
 		};
 
-		const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+		const delay = (ms) => new Promise((resolve) => originalSetTimeout(resolve, ms));
+		const cue = () => document.querySelector('.next-slide-cue');
 		const topSlideId = () => {
 			const deckTop = deck.getBoundingClientRect().top;
 			return Array.from(document.querySelectorAll('.slide'))
@@ -1127,49 +1132,133 @@ try {
 			}
 			return false;
 		};
+		const waitForCueHref = async (href) => {
+			const deadline = performance.now() + 1200;
+			while (performance.now() < deadline) {
+				if (cue()?.getAttribute('href') === href) return true;
+				await delay(50);
+			}
+			return false;
+		};
+		const waitForVisibleCue = async (href) => {
+			const deadline = performance.now() + 1600;
+			while (performance.now() < deadline) {
+				const currentCue = cue();
+				if (currentCue?.getAttribute('href') === href) {
+					const style = getComputedStyle(currentCue);
+					if (Number(style.opacity) > 0.8 && style.pointerEvents !== 'none') return currentCue;
+				}
+				await delay(50);
+			}
+			return null;
+		};
 
 		try {
+			deck.style.scrollBehavior = 'auto';
 			deck.scrollTop = firstSlide.offsetTop;
-			await delay(100);
+			if (!(await waitForSlide('slide-1'))) {
+				return { error: 'Cue test could not reset the deck to slide 1.', top: topSlideId() };
+			}
 
-			const cueRect = cue.getBoundingClientRect();
-			const slideRect = firstSlide.getBoundingClientRect();
-			const cueCenter = cueRect.left + cueRect.width / 2;
-			const slideCenter = slideRect.left + slideRect.width / 2;
-			const centerDrift = Math.abs(cueCenter - slideCenter);
-			const bottomGap = Math.round(slideRect.bottom - cueRect.bottom);
-			if (centerDrift > 1.5 || bottomGap < 8) {
+			const firstCue = await waitForVisibleCue('#slide-2');
+			if (!firstCue) {
+				return { error: 'Deck must reveal a global .next-slide-cue after slide dwell time.' };
+			}
+			if (!(await waitForCueHref('#slide-2'))) {
 				return {
-					error: 'Title scroll cue must stay bottom-centered on the title slide.',
+					error: 'First-slide cue did not retarget to slide 2 after the deck settled on slide 1.',
+					top: topSlideId(),
+					href: firstCue.getAttribute('href')
+				};
+			}
+			if (firstCue.closest('.slide')) {
+				return { error: 'Global next slide cue must not be nested inside a single slide.' };
+			}
+			if (firstCue.getAttribute('href') !== '#slide-2') {
+				return {
+					error: \`First-slide cue href must be #slide-2; found \${firstCue.getAttribute('href')}.\`
+				};
+			}
+			window.dispatchEvent(new PointerEvent('pointermove', { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 }));
+			await delay(120);
+			const afterPointerMove = cue();
+			if (!afterPointerMove || afterPointerMove.getAttribute('href') !== '#slide-2') {
+				return {
+					error: 'Pointer movement must not hide or retarget the next-slide cue.',
+					href: afterPointerMove?.getAttribute('href') ?? null
+				};
+			}
+
+			const cueStyle = getComputedStyle(firstCue);
+			const cueRect = firstCue.getBoundingClientRect();
+			const cueCenter = cueRect.left + cueRect.width / 2;
+			const viewportCenter = window.innerWidth / 2;
+			const centerDrift = Math.abs(cueCenter - viewportCenter);
+			const bottomGap = Math.round(window.innerHeight - cueRect.bottom);
+			if (
+				cueStyle.opacity < 0.8 ||
+				cueStyle.pointerEvents === 'none' ||
+				centerDrift > 1.5 ||
+				bottomGap < 8
+			) {
+				return {
+					error: 'Global next slide cue must become visible after idle and stay bottom-centered.',
+					opacity: cueStyle.opacity,
+					pointerEvents: cueStyle.pointerEvents,
 					centerDrift,
 					bottomGap,
 					cueRect: {
 						left: Math.round(cueRect.left),
 						right: Math.round(cueRect.right),
 						bottom: Math.round(cueRect.bottom)
-					},
-					slideRect: {
-						left: Math.round(slideRect.left),
-						right: Math.round(slideRect.right),
-						bottom: Math.round(slideRect.bottom)
 					}
 				};
 			}
 
-			cue.click();
+			firstCue.click();
 			const reached = await waitForSlide('slide-2');
 			if (!reached) {
 				return {
-					error: 'Clicking title scroll cue must navigate the deck to slide 2.',
+					error: 'Clicking global next slide cue must navigate the deck to slide 2.',
 					top: topSlideId(),
 					scrollTop: deck.scrollTop,
 					slide2OffsetTop: secondSlide.offsetTop
 				};
 			}
 
+			if (!(await waitForCueHref('#slide-3'))) {
+				return {
+					error: 'After reaching slide 2, global next slide cue must target slide 3.',
+					top: topSlideId(),
+					href: cue()?.getAttribute('href') ?? null
+				};
+			}
+
+			const secondCue = await waitForVisibleCue('#slide-3');
+			if (!secondCue) {
+				return {
+					error: 'Global next slide cue must render on slide 2 after dwell time.',
+					top: topSlideId(),
+					href: cue()?.getAttribute('href') ?? null
+				};
+			}
+
+			deck.scrollTop = lastSlide.offsetTop;
+			const reachedLast = await waitForSlide(lastSlide.id);
+			await delay(350);
+			if (!reachedLast || cue()) {
+				return {
+					error: 'Global next slide cue must disappear on the final slide.',
+					top: topSlideId(),
+					lastSlide: lastSlide.id,
+					cueHref: cue()?.getAttribute('href') ?? null
+				};
+			}
+
 			return { reached, top: topSlideId() };
 		} finally {
 			window.matchMedia = originalMatchMedia;
+			window.setTimeout = originalSetTimeout;
 		}
 	})())`;
 
@@ -1179,7 +1268,7 @@ try {
 		scrollCueExpression
 	);
 	if (scrollCueResult.error) fail(`${scrollCueResult.error}\n${JSON.stringify(scrollCueResult, null, 2)}`);
-	console.log('title scroll cue click passed (#slide-1 .scroll-cue -> slide 2).');
+	console.log('global next slide cue passed (idle reveal, click advance, final-slide hide).');
 } finally {
 	if (chromium) await chromium.stop();
 	if (vite) {

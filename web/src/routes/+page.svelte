@@ -13,8 +13,6 @@
 		eyebrow?: string;
 		cta_text?: string;
 		cta_href?: string;
-		scroll_cue?: boolean;
-		scroll_cue_href?: string;
 	}
 	interface MdModule {
 		metadata: Meta;
@@ -50,7 +48,6 @@
 			alt={meta.alt ?? false}
 			align={meta.align}
 			background={meta.background}
-			scrollCueHref={meta.scroll_cue ? (meta.scroll_cue_href ?? `#slide-${i + 2}`) : undefined}
 		>
 			{#if meta.eyebrow}<p class="eyebrow">{meta.eyebrow}</p>{/if}
 			<div class="prose"><Content /></div>
@@ -659,6 +656,18 @@
 			transform 0.16s ease,
 			border-color 0.16s ease;
 	}
+	:global(.slide .content .prose .benchmark-tweets .verdict-tweet img) {
+		width: min(40vw, 500px);
+		height: min(73dvh, 620px);
+		object-fit: cover;
+		object-position: top center;
+	}
+	@media (width <= 760px) {
+		:global(.slide .content .prose .benchmark-tweets .verdict-tweet img) {
+			width: 100%;
+			height: min(42dvh, 340px);
+		}
+	}
 	:global(.slide .content .prose .verdict-tweet:hover img) {
 		transform: translateY(-2px);
 		border-color: color-mix(in oklch, var(--deck-accent) 45%, var(--deck-text));
@@ -1137,6 +1146,44 @@
 			padding: 0.46rem;
 			font-size: 0.58rem;
 			line-height: 1.18;
+		}
+	}
+
+	@media (width <= 760px) {
+		:global(.slide .content .prose .benchmark-tweets) {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 0.72rem;
+			align-items: start;
+		}
+		:global(.slide .content .prose .benchmark-tweets .verdict) {
+			width: 100%;
+			justify-items: center;
+		}
+		:global(.slide .content .prose .benchmark-tweets .verdict-tweet img) {
+			width: 100%;
+			height: min(42dvh, 340px);
+		}
+	}
+
+	:global(.slide .content .prose .mismanaged-previews .url-preview img) {
+		height: clamp(185px, 28dvh, 295px);
+	}
+
+	@media (min-width: 761px) and (max-height: 900px) {
+		:global(.slide .content .prose .mismanaged-previews .url-preview img) {
+			height: clamp(165px, 26dvh, 235px);
+		}
+	}
+
+	@media (width <= 760px) {
+		:global(.slide .content .prose .mismanaged-previews .url-preview img) {
+			height: clamp(108px, 18dvh, 150px);
+		}
+	}
+
+	@media (max-width: 380px) and (max-height: 760px) {
+		:global(.slide .content .prose .mismanaged-previews .url-preview img) {
+			height: 94px;
 		}
 	}
 </style>

@@ -23,13 +23,19 @@
 
 <div class="rlm-check-grid mx-auto w-full text-left" data-rlm-check-grid>
 	<div class="rlm-check-table">
-		<Table.Root>
+		<Table.Root class="table-fixed">
+		<colgroup>
+			<col class="rlm-check-system-col" />
+			{#each COLS as col}
+				<col class="rlm-check-mark-col" />
+			{/each}
+		</colgroup>
 		<Table.Header>
 			<Table.Row class="border-border hover:bg-transparent">
-				<Table.Head class="w-[28%]"></Table.Head>
+				<Table.Head class="whitespace-normal"></Table.Head>
 				{#each COLS as col}
-					<Table.Head class="px-2 text-center align-bottom">
-						<span class="block text-[0.78rem] font-semibold leading-tight text-foreground">{col.crit}</span>
+					<Table.Head class="whitespace-normal px-2 text-center align-bottom">
+						<span class="block text-[1rem] font-semibold leading-tight text-foreground">{col.crit}</span>
 					</Table.Head>
 				{/each}
 			</Table.Row>
@@ -41,19 +47,19 @@
 						? 'border-y-2 border-primary/50 bg-primary/10 hover:bg-primary/10'
 						: 'border-border'}
 				>
-					<Table.Cell class="py-4">
+					<Table.Cell class="whitespace-normal py-[1.05rem]">
 						<span
-							class={'block text-[0.95rem] font-semibold ' +
+							class={'block text-[1.18rem] font-semibold leading-tight ' +
 								(row.rlm ? 'text-primary' : 'text-foreground')}>{row.sys}</span
 						>
-						<span class="mt-0.5 block text-xs text-muted-foreground">{row.tag}</span>
+						<span class="mt-1 block text-[0.88rem] leading-snug text-muted-foreground">{row.tag}</span>
 					</Table.Cell>
 					{#each row.marks as m}
 						<Table.Cell class="text-center">
 							{#if m}
-								<Check class={'mx-auto size-5 ' + (row.rlm ? 'text-primary' : 'text-emerald-400')} />
+								<Check class={'mx-auto size-6 ' + (row.rlm ? 'text-primary' : 'text-emerald-400')} />
 							{:else}
-								<X class="mx-auto size-5 text-muted-foreground/30" />
+								<X class="mx-auto size-6 text-muted-foreground/30" />
 							{/if}
 						</Table.Cell>
 					{/each}
@@ -97,6 +103,23 @@
 		display: none;
 	}
 
+	.rlm-check-system-col {
+		width: 30%;
+	}
+
+	.rlm-check-mark-col {
+		width: 14%;
+	}
+
+	.rlm-check-table :global([data-slot='table']) {
+		table-layout: fixed;
+	}
+
+	.rlm-check-table :global([data-slot='table-head'] span) {
+		overflow-wrap: anywhere;
+		text-wrap: balance;
+	}
+
 	@media (max-width: 760px) {
 		.rlm-check-table {
 			display: none;
@@ -110,23 +133,38 @@
 		.rlm-check-legend,
 		.rlm-row-card {
 			display: grid;
-			grid-template-columns: minmax(0, 1fr) repeat(5, 2.36rem);
-			gap: 0.34rem;
-			align-items: center;
+			gap: 0.42rem;
 		}
 
 		.rlm-check-legend {
-			padding: 0 0.62rem;
+			grid-template-columns: repeat(5, minmax(0, 1fr));
+			padding: 0 0.78rem;
+		}
+
+		.rlm-check-legend span:first-child {
+			display: none;
+		}
+
+		.rlm-row-card {
+			grid-template-columns: minmax(0, 1fr);
+			align-items: start;
+		}
+
+		.rlm-check-legend {
 			color: var(--deck-muted);
-			font-size: 0.55rem;
+			font-size: 0.62rem;
 			font-weight: 700;
 			line-height: 1;
 			text-align: center;
 			text-transform: uppercase;
 		}
 
+		.rlm-check-legend span {
+			overflow-wrap: anywhere;
+		}
+
 		.rlm-row-card {
-			padding: 0.48rem 0.62rem;
+			padding: 0.62rem 0.78rem;
 			border: 1px solid color-mix(in oklch, var(--deck-text) 16%, transparent);
 			border-radius: 8px;
 			background: color-mix(in oklch, var(--deck-text) 4%, var(--deck-bg));
@@ -144,9 +182,10 @@
 		}
 
 		.rlm-row-card__header strong {
-			font-size: 0.78rem;
+			font-size: 0.94rem;
 			line-height: 1.12;
 			color: var(--deck-text);
+			overflow-wrap: anywhere;
 		}
 
 		.rlm-row-card--pass .rlm-row-card__header strong {
@@ -158,9 +197,10 @@
 		}
 
 		.rlm-row-card ul {
-			grid-column: 2 / -1;
 			display: grid;
-			grid-template-columns: subgrid;
+			grid-template-columns: repeat(5, minmax(0, 1fr));
+			gap: 0.34rem;
+			width: 100%;
 			margin: 0;
 			padding: 0;
 			list-style: none;
@@ -178,39 +218,39 @@
 		}
 
 		.rlm-row-card li :global(svg) {
-			width: 0.82rem;
-			height: 0.82rem;
+			width: 0.98rem;
+			height: 0.98rem;
 			color: currentColor;
 		}
 	}
 
 	@media (min-width: 761px) and (max-height: 900px) {
 		.rlm-check-table :global([data-slot='table-head']) {
-			height: 2.2rem;
-			padding-inline: 0.35rem;
+			height: 2.85rem;
+			padding-inline: 0.52rem;
 		}
 
 		.rlm-check-table :global([data-slot='table-cell']) {
-			padding: 0.52rem 0.35rem;
+			padding: 0.82rem 0.52rem;
 		}
 
 		.rlm-check-table :global([data-slot='table-head'] span) {
-			font-size: 0.64rem;
+			font-size: 0.93rem;
 		}
 
 		.rlm-check-table :global([data-slot='table-cell'] span:first-child) {
-			font-size: 0.8rem;
-			line-height: 1.08;
-		}
-
-		.rlm-check-table :global([data-slot='table-cell'] span:last-child) {
-			font-size: 0.64rem;
+			font-size: 1.1rem;
 			line-height: 1.12;
 		}
 
+		.rlm-check-table :global([data-slot='table-cell'] span:last-child) {
+			font-size: 0.82rem;
+			line-height: 1.2;
+		}
+
 		.rlm-check-table :global(svg) {
-			width: 1rem;
-			height: 1rem;
+			width: 1.35rem;
+			height: 1.35rem;
 		}
 	}
 </style>

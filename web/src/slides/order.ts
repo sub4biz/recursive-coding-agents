@@ -4,6 +4,7 @@ export const slideOrder = [
 	'mismanaged',
 	'what-is-rlm',
 	'rlms-new-reasoning-models',
+	'too-hot-to-benchmark',
 	'rlm-not',
 	'towards-recursive-coding-agents',
 	'ypi',

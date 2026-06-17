@@ -17,19 +17,51 @@
 	let deck = $state<HTMLElement | null>(null);
 	let active = $state(0);
 	let mounted = $state(false);
+	let nextCueVisible = $state(false);
 	// Built once on mount from the rendered DOM (label + count) — the dots are a
 	// client-only progressive enhancement, so this avoids any hydration mismatch.
 	let slides = $state<{ label: string }[]>([]);
+	let nextCueTimer: ReturnType<typeof setTimeout> | null = null;
+	const nextCueDelay = 20_000;
 
 	const reduceMotion = () =>
 		typeof window !== 'undefined' &&
 		window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	const hasNextSlide = $derived(mounted && active < slides.length - 1);
+	const nextSlideHref = $derived(hasNextSlide ? `#slide-${active + 2}` : undefined);
+	const nextSlideLabel = $derived(slides[active + 1]?.label ?? `Slide ${active + 2}`);
+
+	function clearNextCueTimer() {
+		if (!nextCueTimer) return;
+		clearTimeout(nextCueTimer);
+		nextCueTimer = null;
+	}
+
+	function scheduleNextCueForSlide(slideIndex = active) {
+		clearNextCueTimer();
+		nextCueVisible = false;
+		const slideCount = slides.length;
+		if (!mounted || slideCount === 0 || slideIndex >= slideCount - 1) return;
+
+		nextCueTimer = setTimeout(() => {
+			nextCueVisible = mounted && active === slideIndex && slides.length === slideCount;
+			nextCueTimer = null;
+		}, nextCueDelay);
+	}
 
 	/** Scroll to a slide by 0-based index, clamped to range. */
 	function goTo(index: number) {
 		const i = Math.max(0, Math.min(slides.length - 1, index));
 		const target = deck?.querySelector<HTMLElement>(`#slide-${i + 1}`);
 		target?.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+	}
+
+	function goToNext(event: MouseEvent) {
+		event.preventDefault();
+		clearNextCueTimer();
+		nextCueVisible = false;
+		goTo(active + 1);
 	}
 
 	function slideIndexForNumberKey(event: KeyboardEvent) {
@@ -109,7 +141,17 @@
 			}
 		}
 
-		return () => observer.disconnect();
+		return () => {
+			observer.disconnect();
+			clearNextCueTimer();
+		};
+	});
+
+	$effect(() => {
+		const slideIndex = active;
+		const slideCount = slides.length;
+		if (!mounted || slideCount === 0) return;
+		scheduleNextCueForSlide(slideIndex);
 	});
 </script>
 
@@ -137,6 +179,18 @@
 			</a>
 		{/each}
 	</nav>
+{/if}
+
+{#if hasNextSlide && nextSlideHref}
+	<a
+		class="next-slide-cue"
+		class:visible={nextCueVisible}
+		href={nextSlideHref}
+		aria-label={`Go to next slide: ${nextSlideLabel}`}
+		onclick={goToNext}
+	>
+		<span aria-hidden="true"></span>
+	</a>
 {/if}
 
 <style>
@@ -197,12 +251,88 @@
 		outline-offset: 2px;
 	}
 
+	.next-slide-cue {
+		position: fixed;
+		left: 50%;
+		bottom: max(clamp(1rem, 4dvh, 2.2rem), env(safe-area-inset-bottom));
+		z-index: 12;
+		display: grid;
+		place-items: center;
+		width: clamp(2.45rem, 6vw, 3.25rem);
+		height: clamp(2.45rem, 6vw, 3.25rem);
+		border: 1px solid color-mix(in oklch, var(--deck-text) 24%, transparent);
+		border-radius: 999px;
+		background: color-mix(in oklch, var(--deck-bg) 82%, transparent);
+		color: var(--deck-text);
+		opacity: 0;
+		pointer-events: none;
+		transform: translateX(-50%) translateY(0.55rem) scale(0.94);
+		text-decoration: none;
+		transition:
+			opacity 0.28s ease,
+			transform 0.28s ease,
+			border-color 0.2s ease,
+			background 0.2s ease;
+	}
+
+	.next-slide-cue.visible {
+		opacity: 0.92;
+		pointer-events: auto;
+		transform: translateX(-50%) translateY(0) scale(1);
+		animation: cue-bob 1.65s cubic-bezier(0.4, 0, 0.2, 1) 0.3s infinite;
+	}
+
+	.next-slide-cue span {
+		width: 0.72rem;
+		height: 0.72rem;
+		margin-top: -0.12rem;
+		border-right: 2px solid currentColor;
+		border-bottom: 2px solid currentColor;
+		transform: rotate(45deg);
+	}
+
+	.next-slide-cue:hover {
+		border-color: color-mix(in oklch, var(--deck-text) 48%, transparent);
+		background: color-mix(in oklch, var(--deck-text) 8%, var(--deck-bg));
+	}
+
+	.next-slide-cue:focus-visible {
+		opacity: 1;
+		outline: 2px solid var(--deck-accent);
+		outline-offset: 4px;
+		pointer-events: auto;
+		transform: translateX(-50%) translateY(0) scale(1);
+	}
+
+	@keyframes cue-bob {
+		0%,
+		100% {
+			transform: translateX(-50%) translateY(0) scale(1);
+		}
+		50% {
+			transform: translateX(-50%) translateY(0.28rem) scale(1);
+		}
+	}
+
 	@media (prefers-reduced-motion: reduce) {
 		.deck {
 			scroll-behavior: auto;
 		}
 		.dot-visual {
 			transition: none;
+		}
+		.next-slide-cue,
+		.next-slide-cue.visible {
+			animation: none;
+			transition: none;
+		}
+	}
+
+	@media (width <= 760px) {
+		.next-slide-cue {
+			bottom: max(0.8rem, env(safe-area-inset-bottom));
+			width: 2.35rem;
+			height: 2.35rem;
 		}
 	}
 </style>
