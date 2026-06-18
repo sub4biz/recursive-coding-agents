@@ -1881,12 +1881,24 @@ try {
 				['shifted row 1', { key: '!', code: 'Digit1', shiftKey: true }, 'slide-1'],
 				['shifted row 0', { key: ')', code: 'Digit0', shiftKey: true }, 'slide-10'],
 				['numpad 1', { key: 'End', code: 'Numpad1' }, 'slide-1'],
-				['numpad 0', { key: 'Insert', code: 'Numpad0' }, 'slide-10']
+				['numpad 0', { key: 'Insert', code: 'Numpad0' }, 'slide-10'],
+				['body target with stopped bubble', { key: '5', code: 'Digit5', stopBubbleAtBody: true }, 'slide-5']
 			];
 			const results = [];
 			for (const [label, init, expected] of checks) {
 				const event = new KeyboardEvent('keydown', { ...init, bubbles: true, cancelable: true });
-				window.dispatchEvent(event);
+				if (init.stopBubbleAtBody) {
+					document.body.addEventListener(
+						'keydown',
+						(stopEvent) => {
+							stopEvent.stopPropagation();
+						},
+						{ once: true }
+					);
+					document.body.dispatchEvent(event);
+				} else {
+					window.dispatchEvent(event);
+				}
 				const reached = await waitForSlide(expected);
 				results.push({
 					label,

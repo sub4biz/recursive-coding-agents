@@ -81,11 +81,24 @@
 		return null;
 	}
 
+	function isEditableTarget(target: EventTarget | null) {
+		if (!(target instanceof HTMLElement)) return false;
+		return target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
+	}
+
+	function isInteractiveTarget(target: EventTarget | null) {
+		if (!(target instanceof HTMLElement)) return false;
+		return Boolean(
+			target.closest(
+				'a[href], button, summary, [role="button"], [role="link"], [role="menuitem"], [tabindex]:not([tabindex="-1"])'
+			)
+		);
+	}
+
 	/** Keyboard nav: arrows + PageUp/PageDown + Home/End + Space + number keys. */
 	function onKeydown(event: KeyboardEvent) {
-		// Don't hijack keys while the user is typing in a form field or editing text.
-		const t = event.target as HTMLElement | null;
-		if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+		if (event.isComposing || event.keyCode === 229) return;
+		if (isEditableTarget(event.target)) return;
 
 		const numberIndex = slideIndexForNumberKey(event);
 		if (numberIndex !== null && numberIndex < slides.length) {
@@ -93,6 +106,8 @@
 			goTo(numberIndex);
 			return;
 		}
+
+		if (isInteractiveTarget(event.target)) return;
 
 		switch (event.key) {
 			case 'ArrowDown':
@@ -123,6 +138,7 @@
 	onMount(() => {
 		mounted = true;
 		if (!deck) return;
+		window.addEventListener('keydown', onKeydown, { capture: true });
 		const sections = Array.from(deck.querySelectorAll<HTMLElement>('.slide'));
 		slides = sections.map((s, i) => ({ label: s.dataset.label || `Slide ${i + 1}` }));
 
@@ -152,6 +168,7 @@
 		}
 
 		return () => {
+			window.removeEventListener('keydown', onKeydown, { capture: true });
 			observer.disconnect();
 			clearNextCueTimer();
 		};
@@ -164,8 +181,6 @@
 		scheduleNextCueForSlide(slideIndex);
 	});
 </script>
-
-<svelte:window on:keydown={onKeydown} />
 
 <main class="deck" bind:this={deck} aria-label={label}>
 	{@render children()}
