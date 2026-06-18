@@ -54,10 +54,10 @@
 	}
 
 	/** Scroll to a slide by 0-based index, clamped to range. */
-	function goTo(index: number) {
+	function goTo(index: number, behavior: ScrollBehavior = reduceMotion() ? 'auto' : 'smooth') {
 		const i = Math.max(0, Math.min(slides.length - 1, index));
 		const target = deck?.querySelector<HTMLElement>(`#slide-${i + 1}`);
-		target?.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+		target?.scrollIntoView({ behavior, block: 'start' });
 		if (target && window.location.hash !== `#slide-${i + 1}`) {
 			replaceState(`#slide-${i + 1}`, {});
 		}
@@ -95,6 +95,11 @@
 		);
 	}
 
+	function focusDeck(event: PointerEvent) {
+		if (isEditableTarget(event.target) || isInteractiveTarget(event.target)) return;
+		deck?.focus({ preventScroll: true });
+	}
+
 	/** Keyboard nav: arrows + PageUp/PageDown + Home/End + Space + number keys. */
 	function onKeydown(event: KeyboardEvent) {
 		if (event.isComposing || event.keyCode === 229) return;
@@ -103,7 +108,7 @@
 		const numberIndex = slideIndexForNumberKey(event);
 		if (numberIndex !== null && numberIndex < slides.length) {
 			event.preventDefault();
-			goTo(numberIndex);
+			goTo(numberIndex, 'auto');
 			return;
 		}
 
@@ -182,7 +187,7 @@
 	});
 </script>
 
-<main class="deck" bind:this={deck} aria-label={label}>
+<main class="deck" bind:this={deck} aria-label={label} tabindex="-1" onpointerdown={focusDeck}>
 	{@render children()}
 </main>
 
