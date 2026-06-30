@@ -12,6 +12,4 @@ eyebrow: "AI Engineer World's Fair · 2026"
 
 [@raw_works](https://x.com/raw_works)
 
-<div aria-hidden="true" style="height:30dvh"></div>
-
-[Watch the Talk on the AI Engineer YouTube channel](https://www.youtube.com/watch?v=3hXJI2q0Jz8)
+<p style="margin:0;position:relative;top:2.5rem"><a href="https://www.youtube.com/watch?v=3hXJI2q0Jz8">Watch the Talk on the AI Engineer YouTube channel</a></p>
